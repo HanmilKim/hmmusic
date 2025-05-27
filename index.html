@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>웹 피아노</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Inter 폰트 임포트 */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+        :root {
+            /* 기본 건반 크기 및 간격 변수 */
+            --white-key-width: 60px;
+            --white-key-margin-right: 4px; /* 흰 건반 오른쪽 마진 */
+            --black-key-width: 40px;
+            --black-key-half-width: calc(var(--black-key-width) / 2);
+            /* 흰 건반 하나가 차지하는 총 너비 (자체 너비 + 오른쪽 마진) */
+            --white-key-total-segment-width: calc(var(--white-key-width) + var(--white-key-margin-right));
+            /* 검은 건반의 상단 오프셋 */
+            --black-key-top-offset: 0px; /* 기본값: 흰 건반 상단과 일치 */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            display: flex;
+            flex-direction: column; /* 세로 정렬 */
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f2f5; /* 부드러운 배경색 */
+            margin: 0;
+            padding: 20px; /* 전체 패딩 추가 */
+            box-sizing: border-box;
+        }
+
+        .controls-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            width: 90%;
+            max-width: 600px; /* 전체 컨트롤 컨테이너 최대 너비 */
+            align-items: center;
+        }
+
+        .app-title {
+            font-size: 2.2em; /* 제목 크기 */
+            font-weight: 700; /* 굵게 */
+            color: #333; /* 어두운 글자색 */
+            margin-bottom: 15px; /* 아래 여백 */
+            text-align: center;
+            width: 100%;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+            width: 100%; /* 부모 컨테이너 너비에 맞춤 */
+            max-width: 560px; /* input-group의 최대 너비 조정 */
+            justify-content: center; /* 내부 요소 중앙 정렬 */
+            flex-wrap: wrap; /* 작은 화면에서 줄바꿈 */
+        }
+
+        .input-group select,
+        .input-group button {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 1.1em;
+            outline: none;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+            flex-grow: 0; /* Prevent growing beyond basis */
+            flex-shrink: 0; /* Prevent shrinking below basis */
+            min-width: unset;
+            background-color: white; /* select 배경색 */
+            cursor: pointer;
+            box-sizing: border-box; /* padding and border included in width */
+        }
+
+        /* Specific flex-basis for chord controls (4 items) */
+        .input-group.chord-controls select,
+        .input-group.chord-controls button {
+            flex-basis: 132.5px; /* (560px - 3*10px) / 4 */
+        }
+
+        /* Specific flex-basis for scale controls */
+        .input-group.scale-controls #scaleSelect {
+            flex-basis: 275px; /* 2 * 132.5px + 10px */
+        }
+        .input-group.scale-controls #highlightScaleButton,
+        .input-group.scale-controls #resetScaleButton {
+            flex-basis: 132.5px; /* Same as chord buttons */
+        }
+
+        .input-group button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            white-space: nowrap; /* 버튼 텍스트 줄바꿈 방지 */
+        }
+        .input-group button:hover {
+            background-color: #0056b3;
+            transform: translateY(-1px);
+        }
+        .input-group button:active {
+            transform: translateY(1px);
+        }
+
+        /* Reset 버튼을 위한 새로운 스타일 */
+        #resetButton, #resetScaleButton {
+            background-color: #6c757d; /* 회색 */
+        }
+        #resetButton:hover, #resetScaleButton:hover {
+            background-color: #5a6268; /* 더 어두운 회색 */
+        }
+
+
+        .code-examples {
+            font-size: 0.9em;
+            color: #666;
+            text-align: center;
+            width: 100%;
+        }
+
+        .piano-container {
+            background-color: #333; /* 피아노 본체 색상 */
+            padding: 20px;
+            border-radius: 15px; /* 둥근 모서리 */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); /* 그림자 효과 */
+            display: flex;
+            position: relative; /* 컨테이너를 기준으로 절대 위치 지정 */
+            flex-wrap: wrap;
+            justify-content: center; /* 전체 피아노를 중앙 정렬 */
+            max-width: 90%;
+            margin-top: 20px;
+        }
+
+        .white-keys {
+            display: flex;
+            position: relative; /* 검은 건반의 absolute 기준 */
+            width: fit-content; /* 내용물에 맞게 너비 조절 */
+        }
+
+        .key {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            cursor: pointer;
+            position: relative; /* for text positioning */
+            transition: background-color 0.1s ease, transform 0.05s ease;
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            padding-bottom: 10px;
+            font-size: 0.8em;
+            color: #555;
+            user-select: none;
+            box-sizing: border-box;
+        }
+
+        .key.active {
+            transform: translateY(2px);
+            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+
+        .key.highlight {
+            background-color: #ffcc00 !important;
+            box-shadow: 0 0 15px rgba(255, 204, 0, 0.7);
+        }
+        .key.highlight.black-key {
+            background-color: #8c7300 !important;
+            color: #fff;
+        }
+
+        /* 새로운 선택 색상 */
+        .key.selected-key {
+            background-color: #a7d9ff !important; /* 밝은 파란색 */
+        }
+        .key.selected-key.black-key {
+            background-color: #336699 !important; /* 검은 건반용 더 어두운 파란색 */
+            color: #fff;
+        }
+
+
+        .white-key {
+            width: var(--white-key-width);
+            height: 200px;
+            background-color: #fff;
+            border-color: #999;
+            margin-right: var(--white-key-margin-right);
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+        }
+        /* 마지막 흰 건반은 오른쪽 마진 없음 */
+        .white-keys .white-key:last-child {
+            margin-right: 0;
+        }
+
+
+        .black-key {
+            width: var(--black-key-width);
+            height: 120px;
+            background-color: #000;
+            border-color: #333;
+            position: absolute; /* 개별 검은 건반의 절대 위치 */
+            z-index: 1;
+            box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
+            color: #ccc;
+        }
+
+        .black-key.active {
+            background-color: #333;
+        }
+
+        /* 검은 건반 그룹 (white-keys의 자식으로 변경) */
+        .black-key-group {
+            display: flex; /* 내부 검은 건반들을 flex로 배치 (실제로는 absolute가 우선) */
+            position: absolute; /* white-keys를 기준으로 절대 위치 */
+            top: var(--black-key-top-offset); /* CSS 변수를 사용하여 상단 위치 조정 */
+            left: 0; /* white-keys의 왼쪽 끝에 정렬 */
+            width: 100%; /* white-keys의 너비에 맞춤 */
+        }
+
+        /* 각 검은 건반의 정확한 위치 조정 (흰 건반 기준) */
+        /* N은 검은 건반 왼쪽에 있는 흰 건반의 0-기반 인덱스 */
+        /* left = N * (흰 건반 세그먼트 너비) + (흰 건반 너비 - 검은 건반 절반 너비) + (흰 건반 마진 / 2) */
+        /* C# (N=0, C-D 사이) */ .key[data-note="C#"] { left: calc(0 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
+        /* D# (N=1, D-E 사이) */ .key[data-note="D#"] { left: calc(1 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
+        /* F# (N=3, F-G 사이) */ .key[data-note="F#"] { left: calc(3 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
+        /* G# (N=4, G-A 사이) */ .key[data-note="G#"] { left: calc(4 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
+        /* A# (N=5, A-B 사이) */ .key[data-note="A#"] { left: calc(5 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
+        /* C#2 (N=7) */ .key[data-note="C#2"] { left: calc(7 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
+        /* D#2 (N=8) */ .key[data-note="D#2"] { left: calc(8 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
+        /* F#2 (N=10) */ .key[data-note="F#2"] { left: calc(10 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
+        /* G#2 (N=11) */ .key[data-note="G#2"] { left: calc(11 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
+        /* A#2 (N=12) */ .key[data-note="A#2"] { left: calc(12 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
+
+
+        /* 반응형 디자인 */
+        @media (max-width: 768px) {
+            :root {
+                --white-key-width: 40px;
+                --white-key-margin-right: 3px;
+                --black-key-width: 25px;
+                --black-key-half-width: calc(var(--black-key-width) / 2);
+                --white-key-total-segment-width: calc(var(--white-key-width) + var(--white-key-margin-right));
+                --black-key-top-offset: 0px; /* 중간 화면 크기 조정 */
+            }
+            .white-key {
+                width: var(--white-key-width);
+                height: 150px;
+            }
+            .black-key {
+                width: var(--black-key-width);
+                height: 90px;
+            }
+            .key {
+                font-size: 0.7em;
+            }
+            .controls-container {
+                padding: 15px;
+            }
+            /* On medium screens, allow elements to wrap to two per row if needed */
+            .input-group select, .input-group button {
+                flex-basis: calc(50% - 5px); /* 2 items per row, considering 10px gap */
+            }
+            /* Override specific flex-basis for larger screens */
+            .input-group.chord-controls select,
+            .input-group.chord-controls button,
+            .input-group.scale-controls #scaleSelect,
+            .input-group.scale-controls #highlightScaleButton,
+            .input-group.scale-controls #resetScaleButton {
+                flex-basis: calc(50% - 5px); /* Ensure they wrap to two per row */
+            }
+        }
+
+        @media (max-width: 480px) {
+            :root {
+                --white-key-width: 30px;
+                --white-key-margin-right: 2px;
+                --black-key-width: 20px;
+                --black-key-half-width: calc(var(--black-key-width) / 2);
+                --white-key-total-segment-width: calc(var(--white-key-width) + var(--white-key-margin-right));
+                --black-key-top-offset: 0px; /* 작은 화면 크기 조정 */
+            }
+            .white-key {
+                width: var(--white-key-width);
+                height: 120px;
+            }
+            .black-key {
+                width: var(--black-key-width);
+                height: 70px;
+            }
+            .key {
+                font-size: 0.6em;
+            }
+            .controls-container {
+                padding: 10px;
+                gap: 10px;
+            }
+            .input-group {
+                flex-direction: column;
+            }
+            .input-group select, .input-group button {
+                width: 100%;
+                min-width: unset;
+                flex-basis: 100%; /* 전체 너비 차지 */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="controls-container">
+        <h1 class="app-title">HM's Music Study</h1>
+        <div class="input-group chord-controls">
+            <select id="rootNoteSelect">
+                </select>
+            <select id="chordTypeSelect">
+                </select>
+            <button id="highlightChordButton">Chord</button>
+            <button id="resetButton">Reset</button>
+        </div>
+        <div class="input-group scale-controls">
+            <label for="scaleSelect" class="sr-only">Scale Key</label>
+            <select id="scaleSelect">
+                </select>
+            <button id="highlightScaleButton">Scale</button>
+            <button id="resetScaleButton">Reset</button>
+        </div>
+        <div class="code-examples">
+            코드의 근음과 화성 종류를 선택하고 'Chord' 버튼을 누르거나, 음계의 근음을 선택하고 'Scale' 버튼을 누르세요.
+        </div>
+    </div>
+
+    <div class="piano-container">
+        <div class="white-keys">
+            <div class="key white-key" data-note="C" data-keyboard="A">C</div>
+            <div class="key white-key" data-note="D" data-keyboard="S">D</div>
+            <div class="key white-key" data-note="E" data-keyboard="D">E</div>
+            <div class="key white-key" data-note="F" data-keyboard="F">F</div>
+            <div class="key white-key" data-note="G" data-keyboard="G">G</div>
+            <div class="key white-key" data-note="A" data-keyboard="H">A</div>
+            <div class="key white-key" data-note="B" data-keyboard="J">B</div>
+
+            <div class="key white-key" data-note="C2" data-keyboard="K">C</div>
+            <div class="key white-key" data-note="D2" data-keyboard="L">D</div>
+            <div class="key white-key" data-note="E2" data-keyboard=";">E</div>
+            <div class="key white-key" data-note="F2" data-keyboard="'">F</div>
+            <div class="key white-key" data-note="G2" data-keyboard="Z">G</div>
+            <div class="key white-key" data-note="A2" data-keyboard="X">A</div>
+            <div class="key white-key" data-note="B2" data-keyboard="C">B</div>
+
+            <div class="black-keys black-key-group">
+                <div class="key black-key" data-note="C#" data-keyboard="W">C#<br>Db</div>
+                <div class="key black-key" data-note="D#" data-keyboard="E">D#<br>Eb</div>
+                <div class="key black-key" data-note="F#" data-keyboard="T">F#<br>Gb</div>
+                <div class="key black-key" data-note="G#" data-keyboard="Y">G#<br>Ab</div>
+                <div class="key black-key" data-note="A#" data-keyboard="U">A#<br>Bb</div>
+                <div class="key black-key" data-note="C#2" data-keyboard="O">C#<br>Db</div>
+                <div class="key black-key" data-note="D#2" data-keyboard="P">D#<br>Eb</div>
+                <div class="key black-key" data-note="F#2" data-keyboard="V">F#<br>Gb</div>
+                <div class="key black-key" data-note="G#2" data-keyboard="B">G#<br>Ab</div>
+                <div class="key black-key" data-note="A#2" data-keyboard="N">A#<br>Bb</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 키보드 키와 음표 매핑 (음표 하이라이트에는 계속 사용)
+        const keyboardMap = {
+            'A': 'C', 'S': 'D', 'D': 'E', 'F': 'F', 'G': 'G', 'H': 'A', 'J': 'B',
+            'K': 'C2', 'L': 'D2', ';': 'E2', "'": 'F2',
+            'W': 'C#', 'E': 'D#', 'T': 'F#', 'Y': 'G#', 'U': 'A#',
+            'O': 'C#2', 'P': 'D#2', 'V': 'F#2', 'B': 'G#2', 'N': 'A#2'
+        };
+
+        // 모든 음표 (옥타브 포함)를 순서대로 정의하여 계산에 사용
+        const allNotesInOrder = [
+            'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B',
+            'C2', 'C#2', 'D2', 'D#2', 'E2', 'F2', 'F#2', 'G2', 'G#2', 'A2', 'A#2', 'B2'
+        ];
+
+        // 플랫 음표를 샵/내추럴 음표로 매핑 (계산의 일관성을 위해)
+        const flatToSharpMap = {
+            'Db': 'C#',
+            'Eb': 'D#',
+            'Gb': 'F#',
+            'Ab': 'G#',
+            'Bb': 'A#',
+            'Cb': 'B',
+            'Fb': 'E'
+        };
+
+        // 코드 정의 (음정 간격 기준)
+        const chords = {
+            'major': [0, 4, 7],
+            'minor': [0, 3, 7],
+            '7': [0, 4, 7, 10],
+            'maj7': [0, 4, 7, 11],
+            'm7': [0, 3, 7, 10],
+            'm7b5': [0, 3, 6, 10],
+            'dim7': [0, 3, 6, 9]
+        };
+
+        // 사용자 친화적인 코드 타입 이름 매핑 (순서 보장을 위해 배열 사용)
+        const chordTypeLabels = [
+            { value: 'major', label: 'Major' },
+            { value: 'minor', label: 'minor' },
+            { value: 'm7', label: 'm7' },
+            { value: '7', label: '7' },
+            { value: 'maj7', label: 'M7' },
+            { value: 'm7b5', label: 'm7b5' },
+            { value: 'dim7', label: 'dim7' }
+        ];
+
+        // 메이저 스케일 정의 (모든 메이저 스케일은 동일한 음정 간격을 가짐)
+        const majorScaleIntervals = [0, 2, 4, 5, 7, 9, 11]; // Root, M2, M3, P4, P5, M6, M7
+
+        // 15개의 메이저 키 레이블 (드롭다운 표시용)
+        // 각 키 옆에 조표의 갯수를 표시합니다.
+        const majorKeyLabels = [
+            { value: 'C', label: 'C Major Key (0)' },
+            { value: 'G', label: 'G Major Key (#1)' },
+            { value: 'F', label: 'F Major Key (b1)' },
+            { value: 'D', label: 'D Major Key (#2)' },
+            { value: 'Bb', label: 'Bb Major Key (b2)' },
+            { value: 'A', label: 'A Major Key (#3)' },
+            { value: 'Eb', label: 'Eb Major Key (b3)' },
+            { value: 'E', label: 'E Major Key (#4)' },
+            { value: 'Ab', label: 'Ab Major Key (b4)' },
+            { value: 'B', label: 'B Major Key (#5)' },
+            { value: 'Db', label: 'Db Major Key (b5)' },
+            { value: 'F#', label: 'F# Major Key (#6)' },
+            { value: 'Gb', label: 'Gb Major Key (b6)' },
+            { value: 'C#', label: 'C# Major Key (#7)' },
+            { value: 'Cb', label: 'Cb Major Key (b7)' }
+        ];
+
+
+        const pianoKeys = document.querySelectorAll('.key');
+
+        // 마우스 및 터치 이벤트 리스너 (선택 색상 토글)
+        pianoKeys.forEach(key => {
+            key.addEventListener('mousedown', () => {
+                key.classList.add('active'); // 순간적인 눌림 효과
+                key.classList.toggle('selected-key'); // 클릭 시 색상 토글
+            });
+
+            key.addEventListener('mouseup', () => {
+                key.classList.remove('active'); // 순간적인 눌림 효과 제거
+            });
+
+            key.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                key.classList.add('active'); // 순간적인 눌림 효과
+                key.classList.toggle('selected-key'); // 터치 시 색상 토글
+            }, { passive: false });
+
+            key.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                key.classList.remove('active'); // 순간적인 눌림 효과 제거
+            }, { passive: false });
+        });
+
+        // 키보드 이벤트 리스너 (선택 색상 토글)
+        const pressedKeys = new Set(); // 현재 눌린 키보드 키를 추적
+
+        document.addEventListener('keydown', (e) => {
+            const keyboardKey = e.key.toUpperCase();
+            // 이미 눌린 키가 아니면 처리 (반복 입력 방지)
+            if (keyboardMap[keyboardKey] && !pressedKeys.has(keyboardKey)) {
+                const noteName = keyboardMap[keyboardKey];
+                const keyElement = document.querySelector(`.key[data-note="${noteName}"]`);
+                if (keyElement) {
+                    keyElement.classList.add('active'); // 순간적인 눌림 효과
+                    keyElement.classList.toggle('selected-key'); // 키보드 누름 시 색상 토글
+                    pressedKeys.add(keyboardKey); // 키가 눌렸음을 기록
+                }
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            const keyboardKey = e.key.toUpperCase();
+            // 눌렸던 키가 떼어졌을 때만 처리
+            if (keyboardMap[keyboardKey] && pressedKeys.has(keyboardKey)) {
+                const noteName = keyboardMap[keyboardKey];
+                const keyElement = document.querySelector(`.key[data-note="${noteName}"]`);
+                if (keyElement) {
+                    keyElement.classList.remove('active'); // 순간적인 눌림 효과 제거
+                    pressedKeys.delete(keyboardKey); // 키가 떼어졌음을 기록
+                }
+            }
+        });
+
+        // --- 코드 및 스케일 하이라이트 기능 ---
+        const rootNoteSelect = document.getElementById('rootNoteSelect');
+        const chordTypeSelect = document.getElementById('chordTypeSelect');
+        const highlightChordButton = document.getElementById('highlightChordButton');
+        const resetButton = document.getElementById('resetButton');
+        const scaleSelect = document.getElementById('scaleSelect'); // New scale select element
+        const highlightScaleButton = document.getElementById('highlightScaleButton'); // New scale button
+        const resetScaleButton = document.getElementById('resetScaleButton'); // New reset button for scale
+
+        // 드롭다운 옵션 채우기
+        function populateDropdowns() {
+            // 근음 (Root Note) 드롭다운 채우기
+            const rootNotes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+            const enharmonicNotes = {
+                'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb'
+            };
+
+            rootNotes.forEach(note => {
+                const option = document.createElement('option');
+                option.value = note;
+                option.textContent = note;
+                if (enharmonicNotes[note]) {
+                    option.textContent += `/${enharmonicNotes[note]}`;
+                }
+                rootNoteSelect.appendChild(option);
+            });
+
+            // 화성 종류 (Chord Type) 드롭다운 채우기
+            chordTypeLabels.forEach(chord => {
+                const option = document.createElement('option');
+                option.value = chord.value;
+                option.textContent = chord.label;
+                chordTypeSelect.appendChild(option);
+            });
+
+            // 스케일 키 (Scale Key) 드롭다운 채우기
+            majorKeyLabels.forEach(key => {
+                const option = document.createElement('option');
+                option.value = key.value;
+                option.textContent = key.label; // Use the updated label with key signature count
+                scaleSelect.appendChild(option);
+            });
+        }
+
+        /**
+         * 선택된 코드에 해당하는 건반을 하이라이트합니다.
+         */
+        function highlightChord() {
+            // 기존 하이라이트 모두 제거
+            pianoKeys.forEach(key => key.classList.remove('highlight'));
+
+            const rootNote = rootNoteSelect.value;
+            const chordType = chordTypeSelect.value;
+
+            if (!rootNote || !chordType) {
+                console.warn("근음과 화성 종류를 모두 선택해주세요.");
+                return;
+            }
+
+            // 플랫 음표를 샵/내추럴 음표로 변환하여 allNotesInOrder에서 찾기
+            let canonicalRootNote = flatToSharpMap[rootNote] || rootNote;
+            const rootIndex = allNotesInOrder.indexOf(canonicalRootNote);
+
+            if (rootIndex === -1) {
+                console.warn(`알 수 없는 근음입니다: ${rootNote}`);
+                return;
+            }
+
+            const intervals = chords[chordType];
+            if (!intervals) {
+                console.warn(`지원하지 않는 코드 타입입니다: ${chordType}.`);
+                return;
+            }
+
+            const notesToHighlight = [];
+            intervals.forEach(interval => {
+                let targetIndex = rootIndex + interval;
+                // 옥타브를 넘어가면 다음 옥타브로 조정 (피아노 건반이 두 옥타브를 커버하므로)
+                while (targetIndex >= allNotesInOrder.length) {
+                    targetIndex -= 12; // 한 옥타브는 12 반음
+                }
+                notesToHighlight.push(allNotesInOrder[targetIndex]);
+            });
+
+            // Highlight each note in the chord
+            notesToHighlight.forEach(noteToFind => {
+                const keyElement = document.querySelector(`.key[data-note="${noteToFind}"]`);
+                if (keyElement) {
+                    keyElement.classList.add('highlight');
+                }
+            });
+        }
+
+        /**
+         * 선택된 스케일에 해당하는 건반을 하이라이트합니다.
+         */
+        function highlightScale() {
+            // 기존 하이라이트 모두 제거
+            pianoKeys.forEach(key => key.classList.remove('highlight'));
+
+            const selectedKey = scaleSelect.value;
+
+            if (!selectedKey) {
+                console.warn("음계의 근음을 선택해주세요.");
+                return;
+            }
+
+            // 플랫 음표를 샵/내추럴 음표로 변환하여 allNotesInOrder에서 찾기
+            let canonicalRootNote = flatToSharpMap[selectedKey] || selectedKey;
+            const rootIndex = allNotesInOrder.indexOf(canonicalRootNote);
+
+            if (rootIndex === -1) {
+                console.warn(`알 수 없는 음계 근음입니다: ${selectedKey}`);
+                return;
+            }
+
+            const notesToHighlight = [];
+            majorScaleIntervals.forEach(interval => {
+                let targetIndex = rootIndex + interval;
+                // 옥타브를 넘어가면 다음 옥타브로 조정 (피아노 건반이 두 옥타브를 커버하므로)
+                while (targetIndex >= allNotesInOrder.length) {
+                    targetIndex -= 12; // 한 옥타브는 12 반음
+                }
+                notesToHighlight.push(allNotesInOrder[targetIndex]);
+            });
+
+            // Highlight each note in the scale
+            notesToHighlight.forEach(noteToFind => {
+                const keyElement = document.querySelector(`.key[data-note="${noteToFind}"]`);
+                if (keyElement) {
+                    keyElement.classList.add('highlight');
+                }
+            });
+        }
+
+
+        /**
+         * 모든 건반의 하이라이트 및 선택 색상을 지웁니다.
+         */
+        function resetHighlights() {
+            pianoKeys.forEach(key => {
+                key.classList.remove('highlight');
+                key.classList.remove('selected-key');
+                key.classList.remove('active'); // Ensure active state is also cleared
+            });
+            // Also reset the pressedKeys set for keyboard inputs
+            pressedKeys.clear();
+        }
+
+
+        // 페이지 로드 시 드롭다운 채우기
+        window.onload = populateDropdowns;
+
+        // 버튼 클릭 이벤트
+        highlightChordButton.addEventListener('click', highlightChord);
+        resetButton.addEventListener('click', resetHighlights);
+        highlightScaleButton.addEventListener('click', highlightScale);
+        resetScaleButton.addEventListener('click', resetHighlights);
+    </script>
+</body>
+</html>
