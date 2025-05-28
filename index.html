@@ -6,8 +6,19 @@
     <title>웹 피아노</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Inter 폰트 임포트 */
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        /* Georgia 폰트 사용 */
+        body {
+            font-family: 'Georgia', serif; /* 폰트를 Georgia로 변경 */
+            display: flex;
+            flex-direction: column; /* 세로 정렬 */
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f2f5; /* 부드러운 배경색 */
+            margin: 0;
+            padding: 20px; /* 전체 패딩 추가 */
+            box-sizing: border-box;
+        }
 
         :root {
             /* 기본 건반 크기 및 간격 변수 */
@@ -19,19 +30,6 @@
             --white-key-total-segment-width: calc(var(--white-key-width) + var(--white-key-margin-right));
             /* 검은 건반의 상단 오프셋 */
             --black-key-top-offset: 0px; /* 기본값: 흰 건반 상단과 일치 */
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            display: flex;
-            flex-direction: column; /* 세로 정렬 */
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background-color: #f0f2f5; /* 부드러운 배경색 */
-            margin: 0;
-            padding: 20px; /* 전체 패딩 추가 */
-            box-sizing: border-box;
         }
 
         .controls-container {
@@ -129,6 +127,19 @@
             width: 100%;
         }
 
+        .sheet-music-container {
+            margin-top: 20px;
+            margin-bottom: 20px;
+            width: 90%;
+            max-width: 600px; /* Align with controls-container */
+            display: flex;
+            justify-content: center;
+        }
+        #sheetMusicCanvas {
+            background-color: #fefefe; /* White background for sheet music */
+        }
+
+
         .piano-container {
             background-color: #333; /* 피아노 본체 색상 */
             padding: 20px;
@@ -178,13 +189,21 @@
             color: #fff;
         }
 
-        /* 새로운 선택 색상 */
-        .key.selected-key {
-            background-color: #a7d9ff !important; /* 밝은 파란색 */
+        /* 푸른 점 스타일 */
+        .key.selected-dot::after {
+            content: '';
+            position: absolute;
+            bottom: 45px; /* 건반 아래쪽으로 45px 위 (음이름보다 위) */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 15px; /* 점의 너비 증가 */
+            height: 15px; /* 점의 높이 증가 */
+            background-color: #007bff; /* 푸른색 */
+            border-radius: 50%; /* 원형 */
+            box-shadow: 0 0 8px rgba(0, 123, 255, 0.9); /* 그림자 효과 강화 */
         }
-        .key.selected-key.black-key {
-            background-color: #336699 !important; /* 검은 건반용 더 어두운 파란색 */
-            color: #fff;
+        .key.selected-dot.black-key::after {
+            background-color: #a7d9ff; /* 검은 건반 위에서는 밝은 파란색 점 */
         }
 
 
@@ -337,6 +356,10 @@
         </div>
     </div>
 
+    <div class="sheet-music-container">
+        <canvas id="sheetMusicCanvas" width="560" height="150" class="border border-gray-300 rounded-lg shadow-inner"></canvas>
+    </div>
+
     <div class="piano-container">
         <div class="white-keys">
             <div class="key white-key" data-note="C" data-keyboard="A">C</div>
@@ -371,7 +394,7 @@
     </div>
 
     <script>
-        // 키보드 키와 음표 매핑 (음표 하이라이트에는 계속 사용)
+        // Keyboard key to note mapping (still used for note highlighting)
         const keyboardMap = {
             'A': 'C', 'S': 'D', 'D': 'E', 'F': 'F', 'G': 'G', 'H': 'A', 'J': 'B',
             'K': 'C2', 'L': 'D2', ';': 'E2', "'": 'F2',
@@ -379,24 +402,19 @@
             'O': 'C#2', 'P': 'D#2', 'V': 'F#2', 'B': 'G#2', 'N': 'A#2'
         };
 
-        // 모든 음표 (옥타브 포함)를 순서대로 정의하여 계산에 사용
+        // All notes in order (including sharps for calculation consistency)
         const allNotesInOrder = [
             'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B',
             'C2', 'C#2', 'D2', 'D#2', 'E2', 'F2', 'F#2', 'G2', 'G#2', 'A2', 'A#2', 'B2'
         ];
 
-        // 플랫 음표를 샵/내추럴 음표로 매핑 (계산의 일관성을 위해)
+        // Map flat notes to their enharmonic sharp/natural equivalents for internal lookup
         const flatToSharpMap = {
-            'Db': 'C#',
-            'Eb': 'D#',
-            'Gb': 'F#',
-            'Ab': 'G#',
-            'Bb': 'A#',
-            'Cb': 'B',
-            'Fb': 'E'
+            'Db': 'C#', 'Eb': 'D#', 'Gb': 'F#', 'Ab': 'G#', 'Bb': 'A#',
+            'Cb': 'B', 'Fb': 'E' // Less common, but good for completeness
         };
 
-        // 코드 정의 (음정 간격 기준)
+        // Chord definitions (based on intervals from root)
         const chords = {
             'major': [0, 4, 7],
             'minor': [0, 3, 7],
@@ -407,7 +425,7 @@
             'dim7': [0, 3, 6, 9]
         };
 
-        // 사용자 친화적인 코드 타입 이름 매핑 (순서 보장을 위해 배열 사용)
+        // User-friendly chord type labels
         const chordTypeLabels = [
             { value: 'major', label: 'Major' },
             { value: 'minor', label: 'minor' },
@@ -418,11 +436,10 @@
             { value: 'dim7', label: 'dim7' }
         ];
 
-        // 메이저 스케일 정의 (모든 메이저 스케일은 동일한 음정 간격을 가짐)
+        // Major scale intervals
         const majorScaleIntervals = [0, 2, 4, 5, 7, 9, 11]; // Root, M2, M3, P4, P5, M6, M7
 
-        // 15개의 메이저 키 레이블 (드롭다운 표시용)
-        // 각 키 옆에 조표의 갯수를 표시합니다.
+        // Major key labels with key signature counts (sorted as requested)
         const majorKeyLabels = [
             { value: 'C', label: 'C Major Key (0)' },
             { value: 'G', label: 'G Major Key (#1)' },
@@ -441,74 +458,122 @@
             { value: 'Cb', label: 'Cb Major Key (b7)' }
         ];
 
+        // Key signature definitions: which notes are naturally sharped/flatted in each key
+        const keySignatures = {
+            'C': { sharps: [], flats: [] },
+            'G': { sharps: ['F'], flats: [] },
+            'D': { sharps: ['F', 'C'], flats: [] },
+            'A': { sharps: ['F', 'C', 'G'], flats: [] },
+            'E': { sharps: ['F', 'C', 'G', 'D'], flats: [] },
+            'B': { sharps: ['F', 'C', 'G', 'D', 'A'], flats: [] },
+            'F#': { sharps: ['F', 'C', 'G', 'D', 'A', 'E'], flats: [] },
+            'C#': { sharps: ['F', 'C', 'G', 'D', 'A', 'E', 'B'], flats: [] },
+
+            'F': { sharps: [], flats: ['B'] },
+            'Bb': { sharps: [], flats: ['B', 'E'] },
+            'Eb': { sharps: [], flats: ['B', 'E', 'A'] },
+            'Ab': { sharps: [], flats: ['B', 'E', 'A', 'D'] },
+            'Db': { sharps: [], flats: ['B', 'E', 'A', 'D', 'G'] },
+            'Gb': { sharps: [], flats: ['B', 'E', 'A', 'D', 'G', 'C'] },
+            'Cb': { sharps: [], flats: ['B', 'E', 'A', 'D', 'G', 'C', 'F'] }
+        };
+
+        // Map semitone value (0-11) to its natural note name (C, D, E, F, G, A, B)
+        const naturalNoteLetters = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+
+        // Map semitone value (0-11) to its common sharp display name
+        const semitoneToSharpDisplayNote = [
+            'C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'
+        ];
+        // Map semitone value (0-11) to its common flat display name
+        const semitoneToFlatDisplayNote = [
+            'C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'
+        ];
+
 
         const pianoKeys = document.querySelectorAll('.key');
 
-        // 마우스 및 터치 이벤트 리스너 (선택 색상 토글)
+        // Mouse and Touch event listeners (toggle selected dot)
         pianoKeys.forEach(key => {
             key.addEventListener('mousedown', () => {
-                key.classList.add('active'); // 순간적인 눌림 효과
-                key.classList.toggle('selected-key'); // 클릭 시 색상 토글
+                key.classList.add('active'); // Instant press effect
+                key.classList.toggle('selected-dot'); // Toggle dot on click
             });
 
             key.addEventListener('mouseup', () => {
-                key.classList.remove('active'); // 순간적인 눌림 효과 제거
+                key.classList.remove('active'); // Remove press effect
             });
 
             key.addEventListener('touchstart', (e) => {
                 e.preventDefault();
-                key.classList.add('active'); // 순간적인 눌림 효과
-                key.classList.toggle('selected-key'); // 터치 시 색상 토글
+                key.classList.add('active'); // Instant press effect
+                key.classList.toggle('selected-dot'); // Toggle dot on touch
             }, { passive: false });
 
             key.addEventListener('touchend', (e) => {
                 e.preventDefault();
-                key.classList.remove('active'); // 순간적인 눌림 효과 제거
+                key.classList.remove('active'); // Remove press effect
             }, { passive: false });
         });
 
-        // 키보드 이벤트 리스너 (선택 색상 토글)
-        const pressedKeys = new Set(); // 현재 눌린 키보드 키를 추적
+        // Keyboard event listeners (toggle selected dot)
+        const pressedKeys = new Set(); // Track currently pressed keyboard keys
 
         document.addEventListener('keydown', (e) => {
             const keyboardKey = e.key.toUpperCase();
-            // 이미 눌린 키가 아니면 처리 (반복 입력 방지)
+            // Process only if key is mapped and not already pressed (prevent repeat)
             if (keyboardMap[keyboardKey] && !pressedKeys.has(keyboardKey)) {
                 const noteName = keyboardMap[keyboardKey];
                 const keyElement = document.querySelector(`.key[data-note="${noteName}"]`);
                 if (keyElement) {
-                    keyElement.classList.add('active'); // 순간적인 눌림 효과
-                    keyElement.classList.toggle('selected-key'); // 키보드 누름 시 색상 토글
-                    pressedKeys.add(keyboardKey); // 키가 눌렸음을 기록
+                    keyElement.classList.add('active'); // Instant press effect
+                    keyElement.classList.toggle('selected-dot'); // Toggle dot on key press
+                    pressedKeys.add(keyboardKey); // Record key as pressed
                 }
             }
         });
 
         document.addEventListener('keyup', (e) => {
             const keyboardKey = e.key.toUpperCase();
-            // 눌렸던 키가 떼어졌을 때만 처리
+            // Process only if key was pressed and is now released
             if (keyboardMap[keyboardKey] && pressedKeys.has(keyboardKey)) {
                 const noteName = keyboardMap[keyboardKey];
                 const keyElement = document.querySelector(`.key[data-note="${noteName}"]`);
                 if (keyElement) {
-                    keyElement.classList.remove('active'); // 순간적인 눌림 효과 제거
-                    pressedKeys.delete(keyboardKey); // 키가 떼어졌음을 기록
+                    keyElement.classList.remove('active'); // Remove press effect
+                    pressedKeys.delete(keyboardKey); // Record key as released
                 }
             }
         });
 
-        // --- 코드 및 스케일 하이라이트 기능 ---
+        // --- Chord and Scale Highlight Functions ---
         const rootNoteSelect = document.getElementById('rootNoteSelect');
         const chordTypeSelect = document.getElementById('chordTypeSelect');
         const highlightChordButton = document.getElementById('highlightChordButton');
         const resetButton = document.getElementById('resetButton');
-        const scaleSelect = document.getElementById('scaleSelect'); // New scale select element
-        const highlightScaleButton = document.getElementById('highlightScaleButton'); // New scale button
-        const resetScaleButton = document.getElementById('resetScaleButton'); // New reset button for scale
+        const scaleSelect = document.getElementById('scaleSelect');
+        const highlightScaleButton = document.getElementById('highlightScaleButton');
+        const resetScaleButton = document.getElementById('resetScaleButton');
 
-        // 드롭다운 옵션 채우기
+        // New canvas and context for sheet music display
+        const sheetMusicCanvas = document.getElementById('sheetMusicCanvas');
+        const sheetMusicCtx = sheetMusicCanvas.getContext('2d');
+
+        // Sheet music drawing parameters
+        const staffLineHeight = 15; // Distance between staff lines
+        const staffTopMargin = 30; // Margin from canvas top to first staff line (F5 line)
+        const noteRadius = 7;
+        // Adjusted for wider spacing and center alignment
+        const scaleNoteSpacing = 60; // Horizontal spacing between notes in a scale (increased)
+        const scaleNoteStartX = (sheetMusicCanvas.width - (majorScaleIntervals.length - 1) * scaleNoteSpacing) / 2; // Starting X position for notes in a scale (calculated for centering)
+
+        // New constants for horizontal chord display
+        const chordDisplaySpacing = 30; // Horizontal spacing between notes in a chord (reduced from 40)
+
+
+        // Function to populate dropdowns
         function populateDropdowns() {
-            // 근음 (Root Note) 드롭다운 채우기
+            // Populate Root Note dropdown
             const rootNotes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
             const enharmonicNotes = {
                 'C#': 'Db', 'D#': 'Eb', 'F#': 'Gb', 'G#': 'Ab', 'A#': 'Bb'
@@ -524,7 +589,7 @@
                 rootNoteSelect.appendChild(option);
             });
 
-            // 화성 종류 (Chord Type) 드롭다운 채우기
+            // Populate Chord Type dropdown
             chordTypeLabels.forEach(chord => {
                 const option = document.createElement('option');
                 option.value = chord.value;
@@ -532,7 +597,7 @@
                 chordTypeSelect.appendChild(option);
             });
 
-            // 스케일 키 (Scale Key) 드롭다운 채우기
+            // Populate Scale Key dropdown
             majorKeyLabels.forEach(key => {
                 const option = document.createElement('option');
                 option.value = key.value;
@@ -542,47 +607,490 @@
         }
 
         /**
-         * 선택된 코드에 해당하는 건반을 하이라이트합니다.
+         * Function to draw the 5 staff lines on the canvas.
+         */
+        function drawStaff() {
+            sheetMusicCtx.clearRect(0, 0, sheetMusicCanvas.width, sheetMusicCanvas.height); // Clear canvas
+            sheetMusicCtx.strokeStyle = '#333';
+            sheetMusicCtx.lineWidth = 1;
+
+            for (let i = 0; i < 5; i++) {
+                const y = staffTopMargin + i * staffLineHeight;
+                sheetMusicCtx.beginPath();
+                sheetMusicCtx.moveTo(0, y);
+                sheetMusicCtx.lineTo(sheetMusicCanvas.width, y);
+                sheetMusicCtx.stroke();
+            }
+
+            // Draw a simple treble clef symbol
+            sheetMusicCtx.font = '80px Arial'; // Increased font size for clef
+            sheetMusicCtx.fillStyle = '#333';
+            sheetMusicCtx.textAlign = 'left';
+            sheetMusicCtx.textBaseline = 'top';
+            // Adjusted y position to move it down by one staff space (staffLineHeight / 2)
+            sheetMusicCtx.fillText(' ', 10, staffTopMargin - 25 + (staffLineHeight / 2));
+        }
+
+        /**
+         * Calculates the Y position on the staff for a given note name,
+         * and determines if an accidental or ledger lines are needed.
+         * @param {string} noteName - The note name (e.g., 'C', 'C#', 'Db', 'C2').
+         * @returns {object|null} - An object with y, accidental, and ledgerLines array, or null if not found.
+         */
+        function getNoteYPositionAndLedgerInfo(noteName) {
+            let baseNote = noteName.replace('2', ''); // e.g., 'C', 'C#', 'Db'
+            let octave = noteName.includes('2') ? 1 : 0; // 0 for C-B, 1 for C2-B2
+
+            let naturalNoteLetterForPosition; // The natural note letter (C, D, E, F, G, A, B) for staff position
+            let accidentalForDisplay = ''; // The accidental symbol to display (# or b)
+
+            if (baseNote.length === 1) { // Natural notes like C, D, E, F, G, A, B
+                naturalNoteLetterForPosition = baseNote;
+                accidentalForDisplay = '';
+            } else { // Sharp or Flat notes (e.g., C#, Db)
+                const letter = baseNote.charAt(0);
+                const modifier = baseNote.charAt(1);
+
+                if (modifier === '#') {
+                    naturalNoteLetterForPosition = letter;
+                    accidentalForDisplay = '#';
+                } else if (modifier === 'b') {
+                    // For flat notes, the natural note letter for staff position is the letter itself.
+                    // e.g., Bb is on the B line/space, Eb is on the E line/space.
+                    // Special cases: Cb is B, Fb is E.
+                    if (letter === 'C' && modifier === 'b') { // Cb
+                        naturalNoteLetterForPosition = 'B';
+                    } else if (letter === 'F' && modifier === 'b') { // Fb
+                        naturalNoteLetterForPosition = 'E';
+                    } else {
+                        naturalNoteLetterForPosition = letter; // This is the fix: use the letter itself
+                    }
+                    accidentalForDisplay = 'b';
+                } else {
+                    console.warn(`Invalid note format: ${noteName}`);
+                    return null;
+                }
+            }
+
+            const naturalNoteIndexInOctave = naturalNoteLetters.indexOf(naturalNoteLetterForPosition);
+            if (naturalNoteIndexInOctave === -1) {
+                console.warn(`Could not determine natural note index for: ${noteName}`);
+                return null;
+            }
+
+            // Calculate total natural note index across octaves (C4=0, D4=1, ..., B4=6, C5=7, ...)
+            // F5 (top staff line) is the reference, which is totalNaturalNoteIndex = 10 (F is 3rd natural note, C5-B5 octave is 7 steps higher: 3+7=10)
+            const yStep = staffLineHeight / 2; // Distance between a line and a space
+            const F5_Y = staffTopMargin; // Y position of the top staff line (F5)
+            const y = F5_Y + (10 - (naturalNoteIndexInOctave + (octave * 7))) * yStep; // Higher notes have lower Y values
+
+            // Determine ledger lines
+            let ledgerLines = [];
+            const bottomStaffLineY = staffTopMargin + 4 * staffLineHeight;
+            const topStaffLineY = staffTopMargin;
+
+            if (y > bottomStaffLineY + yStep) {
+                let currentLedgerY = bottomStaffLineY + yStep * 2;
+                while (y >= currentLedgerY - yStep) {
+                    ledgerLines.push(currentLedgerY);
+                    currentLedgerY += staffLineHeight;
+                }
+            } else if (y < topStaffLineY - yStep) {
+                let currentLedgerY = topStaffLineY - yStep * 2;
+                while (y <= currentLedgerY + yStep) {
+                    ledgerLines.push(currentLedgerY);
+                    currentLedgerY -= staffLineHeight;
+                }
+            }
+
+            // Determine stem direction
+            const middleLineY = staffTopMargin + 2 * staffLineHeight;
+            const stemDirection = (y < middleLineY) ? 'down' : 'up';
+
+            return { y, accidental: accidentalForDisplay, ledgerLines, stemDirection };
+        }
+
+        /**
+         * Draws a note head on the canvas.
+         * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
+         * @param {number} x - X coordinate for the note head.
+         * @param {number} y - Y coordinate for the note head.
+         */
+        function drawNoteHead(ctx, x, y) {
+            ctx.beginPath();
+            ctx.arc(x, y, noteRadius, 0, Math.PI * 2);
+            ctx.fillStyle = 'black';
+            ctx.fill();
+            ctx.strokeStyle = 'black';
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+
+        /**
+         * Draws an accidental (# or b) next to a note head.
+         * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
+         * @param {number} x - X coordinate for the note head.
+         * @param {number} y - Y coordinate for the note head.
+         * @param {string} accidental - The accidental symbol ('#' or 'b').
+         */
+        function drawAccidental(ctx, x, y, accidental) {
+            ctx.font = '20px Arial'; // Font for accidental symbol
+            ctx.fillStyle = 'black';
+            ctx.textAlign = 'right'; // Align text to the left of the note head
+            ctx.textBaseline = 'middle';
+            ctx.fillText(accidental, x - noteRadius - 5, y); // Position to the left of the note
+        }
+
+        /**
+         * Draws a ledger line.
+         * @param {CanvasRenderingContext2D} ctx - The canvas rendering context.
+         * @param {number} y - Y coordinate for the ledger line.
+         * @param {number} xPos - X position of the note for which the ledger line is drawn.
+         */
+        function drawLedgerLine(ctx, y, xPos) {
+            const ledgerLineLength = noteRadius * 3; // Length of the ledger line
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(xPos - ledgerLineLength / 2, y);
+            ctx.lineTo(xPos + ledgerLineLength / 2, y);
+            ctx.stroke();
+        }
+
+        /**
+         * Generates the notes of a major scale with correct enharmonic spellings based on the key signature.
+         * @param {string} rootNote - The root of the scale (e.g., 'C', 'F').
+         * @param {string} currentKey - The selected major key (e.g., 'F', 'G').
+         * @returns {string[]} An array of note names (e.g., ['F', 'G', 'A', 'Bb', 'C', 'D', 'E']).
+         */
+        function getScaleNotesForDisplay(rootNote, currentKey) {
+            const scaleNotes = [];
+            // Convert rootNote to its canonical sharp/natural form for initial index lookup
+            let canonicalRootNoteForLookup = flatToSharpMap[rootNote] || rootNote;
+            let rootIndexInAllNotes = allNotesInOrder.indexOf(canonicalRootNoteForLookup);
+
+            if (rootIndexInAllNotes === -1) {
+                console.warn(`Invalid root note for scale: ${rootNote}`);
+                return [];
+            }
+
+            const keyInfo = keySignatures[currentKey];
+            if (!keyInfo) {
+                console.warn(`Invalid key signature: ${currentKey}`);
+                return [];
+            }
+
+            const isFlatKey = keyInfo.flats.length > 0;
+
+            majorScaleIntervals.forEach(interval => {
+                let absoluteSemitoneIndex = rootIndexInAllNotes + interval; // Absolute index in the 2-octave range
+
+                let semitoneValueInOctave = absoluteSemitoneIndex % 12; // 0-11 for C-B
+                let octaveSuffix = '';
+                if (absoluteSemitoneIndex >= 12) { // If it's in the second octave of the piano
+                    octaveSuffix = '2';
+                }
+
+                let displayNoteNameBase;
+                if (isFlatKey) {
+                    displayNoteNameBase = semitoneToFlatDisplayNote[semitoneValueInOctave];
+                } else {
+                    displayNoteNameBase = semitoneToSharpDisplayNote[semitoneValueInOctave];
+                }
+
+                scaleNotes.push(displayNoteNameBase + octaveSuffix);
+            });
+            return scaleNotes;
+        }
+
+        /**
+         * Helper to calculate text positions centered around a given X.
+         * @param {number} centerX - The center X coordinate for the block of text.
+         * @param {number} numNotes - The number of notes (text labels).
+         * @param {number} spacing - The horizontal spacing between text labels.
+         * @returns {number[]} An array of X positions for each text label.
+         */
+        function calculateTextPositionsCenteredAround(centerX, numNotes, spacing) {
+            const totalTextWidth = (numNotes - 1) * spacing;
+            const startX = centerX - (totalTextWidth / 2);
+            const positions = [];
+            for (let i = 0; i < numNotes; i++) {
+                positions.push(startX + (i * spacing));
+            }
+            return positions;
+        }
+
+        /**
+         * Draws notes on the sheet music canvas.
+         * @param {string[][]} noteSets - An array of note arrays. Each inner array is a set of notes for one chord/scale.
+         * @param {'chord'|'scale'} type - The type of display ('chord' for stacked, 'scale' for sequential).
+         * @param {boolean} isDualDisplay - True if drawing two chords side-by-side (enharmonic roots).
+         */
+        function drawSheetMusic(noteSets, type, isDualDisplay = false) {
+            drawStaff(); // Clear canvas and draw staff lines and clef
+
+            // Fixed Y for note names (below the staff)
+            const textYBelowStaff = staffTopMargin + 5 * staffLineHeight + 15;
+
+            noteSets.forEach((notes, setIndex) => {
+                // Sort notes to ensure consistent vertical stacking/horizontal ordering
+                notes.sort((a, b) => {
+                    const getSemitoneValueForSort = (note) => {
+                        let base = note.replace('2', '');
+                        let semitoneVal;
+                        if (base.includes('#')) {
+                            semitoneVal = semitoneToSharpDisplayNote.indexOf(base);
+                        } else if (base.includes('b')) {
+                            semitoneVal = semitoneToFlatDisplayNote.indexOf(base);
+                        } else { // Natural note
+                            semitoneVal = semitoneToSharpDisplayNote.indexOf(base);
+                        }
+
+                        if (note.includes('2')) { // Add 12 for the second octave
+                            semitoneVal += 12;
+                        }
+                        return semitoneVal;
+                    };
+                    return getSemitoneValueForSort(a) - getSemitoneValueForSort(b);
+                });
+
+                let notesDisplayStartX; // X position for the first note in a set (for horizontal display)
+                let textLabelsXPositions = []; // X positions for the text labels of this note set
+
+                if (type === 'chord') {
+                    // For chords, notes are stacked vertically, but text labels are horizontally spread
+                    if (isDualDisplay) {
+                        const spacingBetweenChordStacks = 180; // Increased space between the two stacked note heads
+                        const centerOfCanvas = sheetMusicCanvas.width / 2;
+
+                        if (setIndex === 0) { // First chord (sharp/primary)
+                            notesDisplayStartX = centerOfCanvas - (spacingBetweenChordStacks / 2);
+                        } else { // Second chord (flat/enharmonic)
+                            notesDisplayStartX = centerOfCanvas + (spacingBetweenChordStacks / 2);
+                        }
+
+                        // Calculate text labels X positions centered around their respective chord stack X
+                        textLabelsXPositions = calculateTextPositionsCenteredAround(
+                            notesDisplayStartX, // Center text labels around the stacked chord notes
+                            notes.length,
+                            chordDisplaySpacing
+                        );
+
+                    } else { // Single chord display
+                        notesDisplayStartX = sheetMusicCanvas.width / 2; // Chord notes are stacked vertically in the center
+                        textLabelsXPositions = calculateTextPositionsCenteredAround(
+                            notesDisplayStartX,
+                            notes.length,
+                            chordDisplaySpacing
+                        );
+                    }
+                } else if (type === 'scale') {
+                    // For scales, both notes and text labels are horizontally spread
+                    notesDisplayStartX = scaleNoteStartX;
+                    textLabelsXPositions = []; // Not used directly, as currentNoteX is already sequential
+                }
+
+
+                notes.forEach((note, noteIndex) => {
+                    const noteInfo = getNoteYPositionAndLedgerInfo(note);
+                    if (noteInfo) {
+                        const { y, accidental, ledgerLines, stemDirection } = noteInfo;
+                        let currentNoteX;
+
+                        if (type === 'chord') {
+                            currentNoteX = notesDisplayStartX; // All notes in a chord are at the same X for stacking
+                            // No stems for chords
+                        } else if (type === 'scale') {
+                            currentNoteX = scaleNoteStartX + (noteIndex * scaleNoteSpacing);
+                            // Existing stem drawing logic for scales
+                            const stemLength = staffLineHeight * 3.5; // Standard stem length
+                            let stemStartX, stemStartY, stemEndX, stemEndY;
+
+                            if (stemDirection === 'up') {
+                                stemStartX = currentNoteX + noteRadius;
+                                stemStartY = y;
+                                stemEndX = currentNoteX + noteRadius;
+                                stemEndY = y - stemLength;
+                            } else { // 'down'
+                                stemStartX = currentNoteX - noteRadius;
+                                stemStartY = y;
+                                stemEndX = currentNoteX - noteRadius;
+                                stemEndY = y + stemLength;
+                            }
+
+                            sheetMusicCtx.beginPath();
+                            sheetMusicCtx.moveTo(stemStartX, stemStartY);
+                            sheetMusicCtx.lineTo(stemEndX, stemEndY);
+                            sheetMusicCtx.stroke();
+                        }
+
+                        drawNoteHead(sheetMusicCtx, currentNoteX, y);
+
+                        if (accidental) {
+                            drawAccidental(sheetMusicCtx, currentNoteX, y, accidental);
+                        }
+
+                        ledgerLines.forEach(lineY => {
+                            drawLedgerLine(sheetMusicCtx, lineY, currentNoteX);
+                        });
+
+                        // Draw note name
+                        sheetMusicCtx.font = '12px Arial'; // Font size for note name
+                        sheetMusicCtx.fillStyle = 'black';
+                        sheetMusicCtx.textAlign = 'center'; // Center text
+
+                        let noteTextX;
+                        let noteTextY = textYBelowStaff; // Always use fixed Y for text below staff
+                        sheetMusicCtx.textBaseline = 'top'; // Align text to the top of its bounding box (draws downwards)
+
+
+                        if (type === 'chord') {
+                            // For chords, text labels are horizontally spread below the staff
+                            noteTextX = textLabelsXPositions[noteIndex];
+                        } else { // 'scale'
+                            // For scales, text labels are below the staff and horizontally aligned
+                            noteTextX = currentNoteX;
+                        }
+                        sheetMusicCtx.fillText(note.replace('2', ''), noteTextX, noteTextY); // Display note name without octave number
+                    }
+                });
+            });
+        }
+
+
+        /**
+         * Generates chord notes with appropriate enharmonic spelling based on root and chord type.
+         * @param {number} rootIndex - The semitone index of the root note (0-11).
+         * @param {string} chordType - The type of chord (e.g., 'minor', 'major').
+         * @param {string|null} primaryAccidentalPreference - 'sharp', 'flat', or null for natural roots.
+         * @returns {string[]} An array of note names with correct enharmonic spelling.
+         */
+        function generateChordNotesForDisplay(rootIndex, chordType, primaryAccidentalPreference) {
+            const notesForDisplay = [];
+            const intervals = chords[chordType];
+
+            intervals.forEach(interval => {
+                let targetSemitone = (rootIndex + interval) % 12;
+                let octaveSuffix = '';
+                if (rootIndex + interval >= 12) { // Check if it crosses into the next octave
+                    octaveSuffix = '2';
+                }
+
+                let noteNameForDisplay = '';
+
+                if (primaryAccidentalPreference === 'sharp') {
+                    noteNameForDisplay = semitoneToSharpDisplayNote[targetSemitone];
+                } else if (primaryAccidentalPreference === 'flat') {
+                    noteNameForDisplay = semitoneToFlatDisplayNote[targetSemitone];
+                } else { // Natural root, apply standard minor/diminished spelling rules
+                    if (chordType === 'minor' || chordType === 'm7' || chordType === 'm7b5' || chordType === 'dim7') {
+                        // For minor 3rd, minor 7th, diminished 5th, prefer flat spelling if it's a black key
+                        if (interval === 3 || interval === 10 || (interval === 6 && (chordType === 'm7b5' || chordType === 'dim7'))) {
+                            if (semitoneToFlatDisplayNote[targetSemitone].includes('b')) {
+                                noteNameForDisplay = semitoneToFlatDisplayNote[targetSemitone];
+                            } else {
+                                noteNameForDisplay = semitoneToSharpDisplayNote[targetSemitone];
+                            }
+                        } else { // Root and perfect 5th remain natural/sharp
+                            noteNameForDisplay = semitoneToSharpDisplayNote[targetSemitone];
+                        }
+                    } else { // Major, Dominant 7th, Major 7th chords on natural root
+                        noteNameForDisplay = semitoneToSharpDisplayNote[targetSemitone];
+                    }
+                }
+                notesForDisplay.push(noteNameForDisplay + octaveSuffix);
+            });
+            return notesForDisplay;
+        }
+
+
+        /**
+         * Highlights the selected chord on the piano and draws it on the sheet music.
          */
         function highlightChord() {
-            // 기존 하이라이트 모두 제거
+            // Remove existing highlights from piano keys
             pianoKeys.forEach(key => key.classList.remove('highlight'));
 
-            const rootNote = rootNoteSelect.value;
+            const rootNote = rootNoteSelect.value; // e.g., 'C', 'C#', 'Db'
             const chordType = chordTypeSelect.value;
 
             if (!rootNote || !chordType) {
                 console.warn("근음과 화성 종류를 모두 선택해주세요.");
+                drawStaff(); // Clear sheet music if no selection
                 return;
             }
 
-            // 플랫 음표를 샵/내추럴 음표로 변환하여 allNotesInOrder에서 찾기
-            let canonicalRootNote = flatToSharpMap[rootNote] || rootNote;
-            const rootIndex = allNotesInOrder.indexOf(canonicalRootNote);
+            // Convert rootNote to its canonical sharp/natural form for internal interval calculation
+            let canonicalRootNoteForIntervalCalc = flatToSharpMap[rootNote] || rootNote;
+            const rootIndex = allNotesInOrder.indexOf(canonicalRootNoteForIntervalCalc);
 
             if (rootIndex === -1) {
                 console.warn(`알 수 없는 근음입니다: ${rootNote}`);
+                drawStaff(); // Clear sheet music if invalid root
                 return;
             }
 
             const intervals = chords[chordType];
             if (!intervals) {
                 console.warn(`지원하지 않는 코드 타입입니다: ${chordType}.`);
+                drawStaff(); // Clear sheet music if invalid chord type
                 return;
             }
 
-            const notesToHighlight = [];
+            // 1. Determine notes for PIANO HIGHLIGHTING (always sharp/natural for data-note lookup)
+            const notesForPianoHighlight = [];
             intervals.forEach(interval => {
                 let targetIndex = rootIndex + interval;
-                // 옥타브를 넘어가면 다음 옥타브로 조정 (피아노 건반이 두 옥타브를 커버하므로)
                 while (targetIndex >= allNotesInOrder.length) {
-                    targetIndex -= 12; // 한 옥타브는 12 반음
+                    targetIndex -= 12; // Adjust for octave
                 }
-                notesToHighlight.push(allNotesInOrder[targetIndex]);
+                notesForPianoHighlight.push(allNotesInOrder[targetIndex]);
             });
 
-            // Highlight each note in the chord
-            notesToHighlight.forEach(noteToFind => {
+            // Determine the primary accidental preference for the *selected root note's chord display*
+            let primaryAccidentalPreference = null; // 'sharp' or 'flat'
+            if (rootNote.includes('#')) {
+                primaryAccidentalPreference = 'sharp';
+            } else if (rootNote.includes('b')) {
+                primaryAccidentalPreference = 'flat';
+            }
+            const notesForSheetMusicDisplayPrimary = generateChordNotesForDisplay(rootIndex, chordType, primaryAccidentalPreference);
+
+
+            // --- Dual Display Logic for Black Key Roots ---
+            let enharmonicRootNameForDisplay = null;
+            const rootSemitone = allNotesInOrder.indexOf(rootNote.replace('2', '')) % 12;
+
+            // Check if the selected root is a black key that has both sharp and flat names
+            if (semitoneToSharpDisplayNote[rootSemitone].includes('#') && semitoneToFlatDisplayNote[rootSemitone].includes('b')) {
+                if (rootNote.includes('#')) {
+                    enharmonicRootNameForDisplay = semitoneToFlatDisplayNote[rootSemitone]; // C# -> Db
+                } else if (rootNote.includes('b')) {
+                    enharmonicRootNameForDisplay = semitoneToSharpDisplayNote[rootSemitone]; // Db -> C#
+                }
+            }
+
+            if (enharmonicRootNameForDisplay) {
+                // Calculate the enharmonic root's index for interval calculation
+                let canonicalEnharmonicRootForIntervalCalc = flatToSharpMap[enharmonicRootNameForDisplay] || enharmonicRootNameForDisplay;
+                const enharmonicRootIndex = allNotesInOrder.indexOf(canonicalEnharmonicRootForIntervalCalc);
+
+                // Determine the accidental preference for the enharmonic version
+                let enharmonicAccidentalPreference = null;
+                if (enharmonicRootNameForDisplay.includes('#')) {
+                    enharmonicAccidentalPreference = 'sharp';
+                } else if (enharmonicRootNameForDisplay.includes('b')) {
+                    enharmonicAccidentalPreference = 'flat';
+                }
+
+                const notesForSheetMusicDisplayEnharmonic = generateChordNotesForDisplay(enharmonicRootIndex, chordType, enharmonicAccidentalPreference);
+                drawSheetMusic([notesForSheetMusicDisplayPrimary, notesForSheetMusicDisplayEnharmonic], 'chord', true);
+            } else {
+                drawSheetMusic([notesForSheetMusicDisplayPrimary], 'chord', false);
+            }
+
+            // Highlight on piano keys
+            notesForPianoHighlight.forEach(noteToFind => {
                 const keyElement = document.querySelector(`.key[data-note="${noteToFind}"]`);
                 if (keyElement) {
                     keyElement.classList.add('highlight');
@@ -591,66 +1099,69 @@
         }
 
         /**
-         * 선택된 스케일에 해당하는 건반을 하이라이트합니다.
+         * Highlights the selected scale on the piano and draws it on the sheet music.
          */
         function highlightScale() {
-            // 기존 하이라이트 모두 제거
+            // Remove existing highlights from piano keys
             pianoKeys.forEach(key => key.classList.remove('highlight'));
 
             const selectedKey = scaleSelect.value;
 
             if (!selectedKey) {
                 console.warn("음계의 근음을 선택해주세요.");
+                drawStaff(); // Clear sheet music if no selection
                 return;
             }
 
-            // 플랫 음표를 샵/내추럴 음표로 변환하여 allNotesInOrder에서 찾기
-            let canonicalRootNote = flatToSharpMap[selectedKey] || selectedKey;
-            const rootIndex = allNotesInOrder.indexOf(canonicalRootNote);
+            // Generate scale notes with correct enharmonic spelling for display
+            const notesForSheetMusic = getScaleNotesForDisplay(selectedKey, selectedKey);
 
-            if (rootIndex === -1) {
-                console.warn(`알 수 없는 음계 근음입니다: ${selectedKey}`);
-                return;
-            }
-
-            const notesToHighlight = [];
-            majorScaleIntervals.forEach(interval => {
-                let targetIndex = rootIndex + interval;
-                // 옥타브를 넘어가면 다음 옥타브로 조정 (피아노 건반이 두 옥타브를 커버하므로)
-                while (targetIndex >= allNotesInOrder.length) {
-                    targetIndex -= 12; // 한 옥타브는 12 반음
+            // For piano key highlighting, convert back to the sharp/natural format used by data-note attributes
+            const notesForPianoHighlight = notesForSheetMusic.map(note => {
+                let baseNote = note.replace('2', '');
+                let octaveSuffix = note.includes('2') ? '2' : '';
+                // Use flatToSharpMap to convert flat notes to their sharp equivalents for piano key lookup
+                if (flatToSharpMap[baseNote]) {
+                    return flatToSharpMap[baseNote] + octaveSuffix;
                 }
-                notesToHighlight.push(allNotesInOrder[targetIndex]);
+                return note; // If it's already sharp/natural or C, F, G, etc.
             });
 
-            // Highlight each note in the scale
-            notesToHighlight.forEach(noteToFind => {
+            // Highlight on piano keys
+            notesForPianoHighlight.forEach(noteToFind => {
                 const keyElement = document.querySelector(`.key[data-note="${noteToFind}"]`);
                 if (keyElement) {
                     keyElement.classList.add('highlight');
                 }
             });
+
+            // Draw on sheet music canvas as a scale
+            drawSheetMusic([notesForSheetMusic], 'scale', false); // Pass the correctly spelled notes
         }
 
 
         /**
-         * 모든 건반의 하이라이트 및 선택 색상을 지웁니다.
+         * Clears all highlights and selected dots from piano keys and the sheet music canvas.
          */
         function resetHighlights() {
             pianoKeys.forEach(key => {
                 key.classList.remove('highlight');
-                key.classList.remove('selected-key');
+                key.classList.remove('selected-dot');
                 key.classList.remove('active'); // Ensure active state is also cleared
             });
             // Also reset the pressedKeys set for keyboard inputs
             pressedKeys.clear();
+            drawStaff(); // Clear the sheet music canvas
         }
 
 
-        // 페이지 로드 시 드롭다운 채우기
-        window.onload = populateDropdowns;
+        // On page load, populate dropdowns and draw an empty staff
+        window.onload = function() {
+            populateDropdowns();
+            drawStaff(); // Draw initial empty staff
+        };
 
-        // 버튼 클릭 이벤트
+        // Button click events
         highlightChordButton.addEventListener('click', highlightChord);
         resetButton.addEventListener('click', resetHighlights);
         highlightScaleButton.addEventListener('click', highlightScale);
@@ -658,3 +1169,4 @@
     </script>
 </body>
 </html>
+ 
