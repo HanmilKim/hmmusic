@@ -626,9 +626,11 @@
             sheetMusicCtx.font = '80px Arial'; // Increased font size for clef
             sheetMusicCtx.fillStyle = '#333';
             sheetMusicCtx.textAlign = 'left';
-            sheetMusicCtx.textBaseline = 'top';
-            // Adjusted y position to move it down by one staff space (staffLineHeight / 2)
-            sheetMusicCtx.fillText(' ', 10, staffTopMargin - 25 + (staffLineHeight / 2));
+            sheetMusicCtx.textBaseline = 'middle'; // Changed to middle to center vertically on the G line
+            // Position the clef's middle on the G line (4th line from the top, or 2nd from bottom)
+            // G4 is at staffTopMargin + 3 * staffLineHeight
+            const gLineY = staffTopMargin + 3 * staffLineHeight;
+            sheetMusicCtx.fillText('𝄞', 10, gLineY - 10); // Adjusted y-coordinate to move it higher
         }
 
         /**
@@ -887,7 +889,8 @@
                 } else if (type === 'scale') {
                     // For scales, both notes and text labels are horizontally spread
                     notesDisplayStartX = scaleNoteStartX;
-                    textLabelsXPositions = []; // Not used directly, as currentNoteX is already sequential
+                    // For scales, text labels are directly below their respective notes, so calculate positions based on note index
+                    textLabelsXPositions = notes.map((_, i) => scaleNoteStartX + (i * scaleNoteSpacing));
                 }
 
 
@@ -949,7 +952,7 @@
                             noteTextX = textLabelsXPositions[noteIndex];
                         } else { // 'scale'
                             // For scales, text labels are below the staff and horizontally aligned
-                            noteTextX = currentNoteX;
+                            noteTextX = textLabelsXPositions[noteIndex]; // Use pre-calculated positions for scales too
                         }
                         sheetMusicCtx.fillText(note.replace('2', ''), noteTextX, noteTextY); // Display note name without octave number
                     }
@@ -1169,4 +1172,3 @@
     </script>
 </body>
 </html>
- 
