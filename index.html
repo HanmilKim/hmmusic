@@ -2,35 +2,36 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>HM's 음악 학습 웹 피아노 - 악보 표시 포함</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>웹 피아노</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
+        /* Roboto 폰트 임포트 */
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
         body {
-            font-family: 'Roboto', sans-serif;
+            font-family: 'Roboto', sans-serif; /* 폰트를 Roboto로 변경 */
             display: flex;
-            flex-direction: column;
+            flex-direction: column; /* 세로 정렬 */
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            background-color: #f0f2f5;
+            background-color: #f0f2f5; /* 부드러운 배경색 */
             margin: 0;
-            padding: 15px;
+            padding: 20px; /* 전체 패딩 추가 */
             box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation;
         }
 
         :root {
             /* 기본 건반 크기 및 간격 변수 */
             --white-key-width: 60px;
-            --white-key-margin-right: 4px;
+            --white-key-margin-right: 4px; /* 흰 건반 오른쪽 마진 */
             --black-key-width: 40px;
             --black-key-half-width: calc(var(--black-key-width) / 2);
+            /* 흰 건반 하나가 차지하는 총 너비 (자체 너비 + 오른쪽 마진) */
             --white-key-total-segment-width: calc(var(--white-key-width) + var(--white-key-margin-right));
-            --black-key-top-offset: 0px;
+            /* 검은 건반의 상단 오프셋 */
+            --black-key-top-offset: 0px; /* 기본값: 흰 건반 상단과 일치 */
         }
 
         .controls-container {
@@ -43,15 +44,15 @@
             border-radius: 15px;
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
             width: 90%;
-            max-width: 600px;
+            max-width: 600px; /* 전체 컨트롤 컨테이너 최대 너비 */
             align-items: center;
         }
 
         .app-title {
-            font-size: 2.2em;
-            font-weight: 700;
-            color: #333;
-            margin-bottom: 15px;
+            font-size: 2.2em; /* 제목 크기 */
+            font-weight: 700; /* 굵게 */
+            color: #333; /* 어두운 글자색 */
+            margin-bottom: 15px; /* 아래 여백 */
             text-align: center;
             width: 100%;
         }
@@ -59,10 +60,10 @@
         .input-group {
             display: flex;
             gap: 10px;
-            width: 100%;
-            max-width: 560px;
-            justify-content: center;
-            flex-wrap: wrap;
+            width: 100%; /* 부모 컨테이너 너비에 맞춤 */
+            max-width: 560px; /* input-group의 최대 너비 조정 */
+            justify-content: center; /* 내부 요소 중앙 정렬 */
+            flex-wrap: wrap; /* 작은 화면에서 줄바꿈 */
         }
 
         .input-group select,
@@ -73,25 +74,27 @@
             font-size: 1.1em;
             outline: none;
             box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
-            flex-grow: 0;
-            flex-shrink: 0;
+            flex-grow: 0; /* Prevent growing beyond basis */
+            flex-shrink: 0; /* Prevent shrinking below basis */
             min-width: unset;
-            background-color: white;
+            background-color: white; /* select 배경색 */
             cursor: pointer;
-            box-sizing: border-box;
+            box-sizing: border-box; /* padding and border included in width */
         }
 
+        /* Specific flex-basis for chord controls (4 items) */
         .input-group.chord-controls select,
         .input-group.chord-controls button {
-            flex-basis: 132.5px;
+            flex-basis: 132.5px; /* (560px - 3*10px) / 4 */
         }
 
+        /* Specific flex-basis for scale controls */
         .input-group.scale-controls #scaleSelect {
-            flex-basis: 275px;
+            flex-basis: 275px; /* 2 * 132.5px + 10px */
         }
         .input-group.scale-controls #highlightScaleButton,
         .input-group.scale-controls #resetScaleButton {
-            flex-basis: 132.5px;
+            flex-basis: 132.5px; /* Same as chord buttons */
         }
 
         .input-group button {
@@ -100,7 +103,7 @@
             border: none;
             cursor: pointer;
             transition: background-color 0.2s ease, transform 0.1s ease;
-            white-space: nowrap;
+            white-space: nowrap; /* 버튼 텍스트 줄바꿈 방지 */
         }
         .input-group button:hover {
             background-color: #0056b3;
@@ -110,12 +113,14 @@
             transform: translateY(1px);
         }
 
+        /* Reset 버튼을 위한 새로운 스타일 */
         #resetButton, #resetScaleButton {
-            background-color: #6c757d;
+            background-color: #6c757d; /* 회색 */
         }
         #resetButton:hover, #resetScaleButton:hover {
-            background-color: #5a6268;
+            background-color: #5a6268; /* 더 어두운 회색 */
         }
+
 
         .code-examples {
             font-size: 0.9em;
@@ -128,44 +133,39 @@
             margin-top: 20px;
             margin-bottom: 20px;
             width: 90%;
-            max-width: 600px;
+            max-width: 600px; /* Align with controls-container */
             display: flex;
             justify-content: center;
         }
         #sheetMusicCanvas {
-            background-color: #fefefe;
-            max-width: 100%;
-            width: 100%;
-            height: auto;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            box-shadow: inset 0 2px 5px rgba(0,0,0,0.1);
+            background-color: #fefefe; /* White background for sheet music */
         }
 
+
         .piano-container {
-            background-color: #333;
+            background-color: #333; /* 피아노 본체 색상 */
             padding: 20px;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            border-radius: 15px; /* 둥근 모서리 */
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); /* 그림자 효과 */
             display: flex;
-            position: relative;
+            position: relative; /* 컨테이너를 기준으로 절대 위치 지정 */
             flex-wrap: wrap;
-            justify-content: center;
-            max-width: 95%;
+            justify-content: center; /* 전체 피아노를 중앙 정렬 */
+            max-width: 90%;
             margin-top: 20px;
         }
 
         .white-keys {
             display: flex;
-            position: relative;
-            width: fit-content;
+            position: relative; /* 검은 건반의 absolute 기준 */
+            width: fit-content; /* 내용물에 맞게 너비 조절 */
         }
 
         .key {
             border: 1px solid #ccc;
             border-radius: 5px;
             cursor: pointer;
-            position: relative;
+            position: relative; /* for text positioning */
             transition: background-color 0.1s ease, transform 0.05s ease;
             display: flex;
             justify-content: center;
@@ -191,21 +191,23 @@
             color: #fff;
         }
 
+        /* 푸른 점 스타일 */
         .key.selected-dot::after {
             content: '';
             position: absolute;
-            bottom: 45px;
+            bottom: 45px; /* 건반 아래쪽으로 45px 위 (음이름보다 위) */
             left: 50%;
             transform: translateX(-50%);
-            width: 15px;
-            height: 15px;
-            background-color: #007bff;
-            border-radius: 50%;
-            box-shadow: 0 0 8px rgba(0, 123, 255, 0.9);
+            width: 15px; /* 점의 너비 증가 */
+            height: 15px; /* 점의 높이 증가 */
+            background-color: #007bff; /* 푸른색 */
+            border-radius: 50%; /* 원형 */
+            box-shadow: 0 0 8px rgba(0, 123, 255, 0.9); /* 그림자 효과 강화 */
         }
         .key.selected-dot.black-key::after {
-            background-color: #a7d9ff;
+            background-color: #a7d9ff; /* 검은 건반 위에서는 밝은 파란색 점 */
         }
+
 
         .white-key {
             width: var(--white-key-width);
@@ -215,16 +217,18 @@
             margin-right: var(--white-key-margin-right);
             box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
         }
+        /* 마지막 흰 건반은 오른쪽 마진 없음 */
         .white-keys .white-key:last-child {
             margin-right: 0;
         }
+
 
         .black-key {
             width: var(--black-key-width);
             height: 120px;
             background-color: #000;
             border-color: #333;
-            position: absolute;
+            position: absolute; /* 개별 검은 건반의 절대 위치 */
             z-index: 1;
             box-shadow: 0 5px 10px rgba(0, 0, 0, 0.3);
             color: #ccc;
@@ -234,26 +238,31 @@
             background-color: #333;
         }
 
+        /* 검은 건반 그룹 (white-keys의 자식으로 변경) */
         .black-key-group {
-            display: flex;
-            position: absolute;
-            top: var(--black-key-top-offset);
-            left: 0;
-            width: 100%;
+            display: flex; /* 내부 검은 건반들을 flex로 배치 (실제로는 absolute가 우선) */
+            position: absolute; /* white-keys를 기준으로 절대 위치 */
+            top: var(--black-key-top-offset); /* CSS 변수를 사용하여 상단 위치 조정 */
+            left: 0; /* white-keys의 왼쪽 끝에 정렬 */
+            width: 100%; /* white-keys의 너비에 맞춤 */
         }
 
-        .key[data-note="C#"] { left: calc(0 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
-        .key[data-note="D#"] { left: calc(1 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
-        .key[data-note="F#"] { left: calc(3 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
-        .key[data-note="G#"] { left: calc(4 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
-        .key[data-note="A#"] { left: calc(5 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
-        .key[data-note="C#2"] { left: calc(7 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
-        .key[data-note="D#2"] { left: calc(8 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
-        .key[data-note="F#2"] { left: calc(10 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
-        .key[data-note="G#2"] { left: calc(11 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
-        .key[data-note="A#2"] { left: calc(12 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
+        /* 각 검은 건반의 정확한 위치 조정 (흰 건반 기준) */
+        /* N은 검은 건반 왼쪽에 있는 흰 건반의 0-기반 인덱스 */
+        /* left = N * (흰 건반 세그먼트 너비) + (흰 건반 너비 - 검은 건반 절반 너비) + (흰 건반 마진 / 2) */
+        /* C# (N=0, C-D 사이) */ .key[data-note="C#"] { left: calc(0 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
+        /* D# (N=1, D-E 사이) */ .key[data-note="D#"] { left: calc(1 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
+        /* F# (N=3, F-G 사이) */ .key[data-note="F#"] { left: calc(3 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
+        /* G# (N=4, G-A 사이) */ .key[data-note="G#"] { left: calc(4 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
+        /* A# (N=5, A-B 사이) */ .key[data-note="A#"] { left: calc(5 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
+        /* C#2 (N=7) */ .key[data-note="C#2"] { left: calc(7 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
+        /* D#2 (N=8) */ .key[data-note="D#2"] { left: calc(8 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
+        /* F#2 (N=10) */ .key[data-note="F#2"] { left: calc(10 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
+        /* G#2 (N=11) */ .key[data-note="G#2"] { left: calc(11 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
+        /* A#2 (N=12) */ .key[data-note="A#2"] { left: calc(12 * var(--white-key-total-segment-width) + var(--white-key-width) - var(--black-key-half-width) + (var(--white-key-margin-right) / 2)); }
 
-        /* 태블릿 화면 */
+
+        /* 반응형 디자인 */
         @media (max-width: 768px) {
             :root {
                 --white-key-width: 40px;
@@ -261,7 +270,7 @@
                 --black-key-width: 25px;
                 --black-key-half-width: calc(var(--black-key-width) / 2);
                 --white-key-total-segment-width: calc(var(--white-key-width) + var(--white-key-margin-right));
-                --black-key-top-offset: 0px;
+                --black-key-top-offset: 0px; /* 중간 화면 크기 조정 */
             }
             .white-key {
                 width: var(--white-key-width);
@@ -277,31 +286,28 @@
             .controls-container {
                 padding: 15px;
             }
+            /* On medium screens, allow elements to wrap to two per row if needed */
             .input-group select, .input-group button {
-                flex-basis: calc(50% - 5px);
+                flex-basis: calc(50% - 5px); /* 2 items per row, considering 10px gap */
             }
+            /* Override specific flex-basis for larger screens */
             .input-group.chord-controls select,
             .input-group.chord-controls button,
             .input-group.scale-controls #scaleSelect,
             .input-group.scale-controls #highlightScaleButton,
             .input-group.scale-controls #resetScaleButton {
-                flex-basis: calc(50% - 5px);
-            }
-            .key.selected-dot::after {
-                bottom: 35px;
-                width: 12px;
-                height: 12px;
+                flex-basis: calc(50% - 5px); /* Ensure they wrap to two per row */
             }
         }
 
-        /* 중간 크기 모바일 화면 */
         @media (max-width: 480px) {
             :root {
-                --white-key-width: 28px;
+                --white-key-width: 30px;
                 --white-key-margin-right: 2px;
-                --black-key-width: 18px;
+                --black-key-width: 20px;
                 --black-key-half-width: calc(var(--black-key-width) / 2);
                 --white-key-total-segment-width: calc(var(--white-key-width) + var(--white-key-margin-right));
+                --black-key-top-offset: 0px; /* 작은 화면 크기 조정 */
             }
             .white-key {
                 width: var(--white-key-width);
@@ -313,16 +319,10 @@
             }
             .key {
                 font-size: 0.6em;
-                padding-bottom: 5px;
             }
             .controls-container {
-                padding: 12px;
+                padding: 10px;
                 gap: 10px;
-                width: 95%;
-            }
-            .app-title {
-                font-size: 1.8em;
-                margin-bottom: 10px;
             }
             .input-group {
                 flex-direction: column;
@@ -330,202 +330,28 @@
             .input-group select, .input-group button {
                 width: 100%;
                 min-width: unset;
-                flex-basis: 100%;
-                min-height: 44px; /* 터치 타겟 최소 크기 */
-                font-size: 16px; /* 모바일 확대 방지 */
-            }
-            .key.selected-dot::after {
-                bottom: 35px;
-                width: 12px;
-                height: 12px;
-            }
-            .piano-container {
-                padding: 12px;
-                max-width: 98%;
-            }
-            .sheet-music-container {
-                width: 95%;
-            }
-            body {
-                padding: 10px;
-            }
-        }
-
-        /* 작은 모바일 화면 - 추가 */
-        @media (max-width: 375px) {
-            :root {
-                --white-key-width: 24px;
-                --white-key-margin-right: 1.5px;
-                --black-key-width: 16px;
-                --black-key-half-width: calc(var(--black-key-width) / 2);
-                --white-key-total-segment-width: calc(var(--white-key-width) + var(--white-key-margin-right));
-            }
-            .white-key {
-                width: var(--white-key-width);
-                height: 110px;
-            }
-            .black-key {
-                width: var(--black-key-width);
-                height: 65px;
-            }
-            .app-title {
-                font-size: 1.6em;
-            }
-            .code-examples {
-                font-size: 0.8em;
-            }
-            .key.selected-dot::after {
-                bottom: 28px;
-                width: 10px;
-                height: 10px;
-            }
-        }
-
-        /* 초소형 모바일 화면 (갤럭시 폴드 등) */
-        @media (max-width: 320px) {
-            :root {
-                --white-key-width: 21px;
-                --white-key-margin-right: 1px;
-                --black-key-width: 14px;
-                --black-key-half-width: calc(var(--black-key-width) / 2);
-                --white-key-total-segment-width: calc(var(--white-key-width) + var(--white-key-margin-right));
-            }
-            .white-key {
-                width: var(--white-key-width);
-                height: 100px;
-            }
-            .black-key {
-                width: var(--black-key-width);
-                height: 60px;
-            }
-            .app-title {
-                font-size: 1.5em;
-            }
-            .key.selected-dot::after {
-                bottom: 25px;
-                width: 8px;
-                height: 8px;
-            }
-        }
-
-        /* 모바일 가로 모드 */
-        @media (max-height: 480px) and (orientation: landscape) {
-            .controls-container {
-                flex-direction: row;
-                flex-wrap: wrap;
-                padding: 10px;
-                gap: 8px;
-                margin-bottom: 10px;
-            }
-            .input-group {
-                flex-direction: row;
-                width: calc(50% - 5px);
-                max-width: unset;
-            }
-            .app-title {
-                font-size: 1.8em;
-                width: 100%;
-                margin-bottom: 5px;
-            }
-            .code-examples {
-                font-size: 0.8em;
-                margin-top: 0;
-            }
-            .sheet-music-container {
-                margin-top: 10px;
-                margin-bottom: 10px;
-            }
-            .piano-container {
-                margin-top: 10px;
-                transform: scale(0.9);
-            }
-            body {
-                justify-content: flex-start;
-                padding-top: 5px;
-            }
-            .key.selected-dot::after {
-                bottom: 30px;
-                width: 10px;
-                height: 10px;
-            }
-        }
-
-        /* 특대형 화면 (아이패드 프로 등) */
-        @media (min-width: 1024px) {
-            :root {
-                --white-key-width: 65px;
-                --white-key-margin-right: 5px;
-                --black-key-width: 43px;
-                --black-key-half-width: calc(var(--black-key-width) / 2);
-                --white-key-total-segment-width: calc(var(--white-key-width) + var(--white-key-margin-right));
-            }
-            .white-key {
-                width: var(--white-key-width);
-                height: 220px;
-            }
-            .black-key {
-                width: var(--black-key-width);
-                height: 130px;
-            }
-            .app-title {
-                font-size: 2.5em;
-            }
-            .controls-container {
-                max-width: 800px;
-            }
-            .key.selected-dot::after {
-                bottom: 50px;
-                width: 18px;
-                height: 18px;
-            }
-        }
-
-        /* 터치 최적화 */
-        .key {
-            touch-action: manipulation;
-        }
-
-        /* PDF 최적화를 위한 추가 스타일 */
-        @media print {
-            body {
-                width: 100%;
-                margin: 0;
-                padding: 0;
-            }
-            .controls-container, 
-            .sheet-music-container, 
-            .piano-container {
-                page-break-inside: avoid;
-                margin-left: auto;
-                margin-right: auto;
+                flex-basis: 100%; /* 전체 너비 차지 */
             }
         }
     </style>
 </head>
-<body class="bg-gray-100">
+<body>
     <div class="controls-container">
-        <h1 class="app-title"><i class="fas fa-music text-blue-500 mr-2"></i>HM's Music Study</h1>
+        <h1 class="app-title">HM's Music Study</h1>
         <div class="input-group chord-controls">
-            <select id="rootNoteSelect" class="bg-white">
-            </select>
-            <select id="chordTypeSelect" class="bg-white">
-            </select>
-            <button id="highlightChordButton" class="bg-blue-500 hover:bg-blue-600">
-                <i class="fas fa-guitar mr-1"></i> Chord
-            </button>
-            <button id="resetButton" class="bg-gray-500 hover:bg-gray-600">
-                <i class="fas fa-undo mr-1"></i> Reset
-            </button>
+            <select id="rootNoteSelect">
+                </select>
+            <select id="chordTypeSelect">
+                </select>
+            <button id="highlightChordButton">Chord</button>
+            <button id="resetButton">Reset</button>
         </div>
         <div class="input-group scale-controls">
-            <select id="scaleSelect" class="bg-white">
-            </select>
-            <button id="highlightScaleButton" class="bg-blue-500 hover:bg-blue-600">
-                <i class="fas fa-ruler mr-1"></i> Scale
-            </button>
-            <button id="resetScaleButton" class="bg-gray-500 hover:bg-gray-600">
-                <i class="fas fa-undo mr-1"></i> Reset
-            </button>
+            <label for="scaleSelect" class="sr-only">Scale Key</label>
+            <select id="scaleSelect">
+                </select>
+            <button id="highlightScaleButton">Scale</button>
+            <button id="resetScaleButton">Reset</button>
         </div>
         <div class="code-examples">
             코드의 근음과 화성 종류를 선택하고 'Chord' 버튼을 누르거나, 음계의 근음을 선택하고 'Scale' 버튼을 누르세요.
@@ -568,10 +394,6 @@
             </div>
         </div>
     </div>
-
-    <footer class="w-full text-center p-4 mt-8 text-gray-600">
-        <p>© 2023 HM's Music Study - 음악 이론 학습을 위한 웹 피아노</p>
-    </footer>
 
     <script>
         // Keyboard key to note mapping (still used for note highlighting)
@@ -670,37 +492,30 @@
             'C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B'
         ];
 
+
         const pianoKeys = document.querySelectorAll('.key');
 
-        // 모바일 터치 최적화 이벤트 리스너
+        // Mouse and Touch event listeners (toggle selected dot)
         pianoKeys.forEach(key => {
-            // 기존 마우스 이벤트
             key.addEventListener('mousedown', () => {
-                key.classList.add('active');
-                key.classList.toggle('selected-dot');
+                key.classList.add('active'); // Instant press effect
+                key.classList.toggle('selected-dot'); // Toggle dot on click
             });
 
             key.addEventListener('mouseup', () => {
-                key.classList.remove('active');
+                key.classList.remove('active'); // Remove press effect
             });
-            
-            // 터치 이벤트 최적화
+
             key.addEventListener('touchstart', (e) => {
                 e.preventDefault();
-                e.stopPropagation();
-                key.classList.add('active');
-                key.classList.toggle('selected-dot');
+                key.classList.add('active'); // Instant press effect
+                key.classList.toggle('selected-dot'); // Toggle dot on touch
             }, { passive: false });
-            
+
             key.addEventListener('touchend', (e) => {
                 e.preventDefault();
-                e.stopPropagation();
-                key.classList.remove('active');
+                key.classList.remove('active'); // Remove press effect
             }, { passive: false });
-            
-            key.addEventListener('touchcancel', (e) => {
-                key.classList.remove('active');
-            });
         });
 
         // Keyboard event listeners (toggle selected dot)
@@ -757,33 +572,6 @@
         // New constants for horizontal chord display
         const chordDisplaySpacing = 30; // Horizontal spacing between notes in a chord (reduced from 40)
 
-        // 모바일 환경에 맞게 캔버스 크기 조정 함수
-        function resizeCanvas() {
-            const container = document.querySelector('.sheet-music-container');
-            const containerWidth = container.clientWidth;
-            
-            // 캔버스 너비를 컨테이너 너비에 맞춤
-            const canvasWidth = containerWidth;
-            const canvasHeight = 150 * (containerWidth / 560); // 원본 비율 유지
-            
-            // 캔버스 DOM 요소의 CSS 크기 설정
-            sheetMusicCanvas.style.width = `${canvasWidth}px`;
-            sheetMusicCanvas.style.height = `${canvasHeight}px`;
-            
-            // 실제 캔버스 드로잉 버퍼 크기 설정 (고해상도 디스플레이 대응)
-            const dpr = window.devicePixelRatio || 1;
-            sheetMusicCanvas.width = canvasWidth * dpr;
-            sheetMusicCanvas.height = canvasHeight * dpr;
-            
-            // 드로잉 컨텍스트 스케일 조정
-            sheetMusicCtx.scale(dpr, dpr);
-            
-            // 캔버스 다시 그리기
-            drawStaff();
-        }
-
-        // 창 크기 변경 시 캔버스 크기 재조정
-        window.addEventListener('resize', resizeCanvas);
 
         // Function to populate dropdowns
         function populateDropdowns() {
@@ -824,42 +612,41 @@
          * Function to draw the 5 staff lines on the canvas.
          */
         function drawStaff() {
-            const canvasWidth = sheetMusicCanvas.width / (window.devicePixelRatio || 1);
-            const canvasHeight = sheetMusicCanvas.height / (window.devicePixelRatio || 1);
-            
-            sheetMusicCtx.clearRect(0, 0, canvasWidth, canvasHeight); // Clear canvas
+            sheetMusicCtx.clearRect(0, 0, sheetMusicCanvas.width, sheetMusicCanvas.height); // Clear canvas
             sheetMusicCtx.strokeStyle = '#333';
             sheetMusicCtx.lineWidth = 1;
 
-            // 5선지 그리기
             for (let i = 0; i < 5; i++) {
                 const y = staffTopMargin + i * staffLineHeight;
                 sheetMusicCtx.beginPath();
                 sheetMusicCtx.moveTo(0, y);
-                sheetMusicCtx.lineTo(canvasWidth, y);
+                sheetMusicCtx.lineTo(sheetMusicCanvas.width, y);
                 sheetMusicCtx.stroke();
             }
 
-            // 높은음 자리표(Treble clef) 그리기
-            sheetMusicCtx.font = '80px Arial';
+            // Draw a simple treble clef symbol
+            sheetMusicCtx.font = '80px Arial'; // Increased font size for clef
             sheetMusicCtx.fillStyle = '#333';
             sheetMusicCtx.textAlign = 'left';
-            sheetMusicCtx.textBaseline = 'middle';
+            sheetMusicCtx.textBaseline = 'middle'; // Changed to middle to center vertically on the G line
+            // Position the clef's middle on the G line (4th line from the top, or 2nd from bottom)
+            // G4 is at staffTopMargin + 3 * staffLineHeight
             const gLineY = staffTopMargin + 3 * staffLineHeight;
-            sheetMusicCtx.fillText('𝄞', 10, gLineY - 10);
+            sheetMusicCtx.fillText('𝄞', 10, gLineY - 10); // Adjusted y-coordinate to move it higher
         }
 
         /**
-         * Calculates the Y position on the staff for a given note name.
+         * Calculates the Y position on the staff for a given note name,
+         * and determines if an accidental or ledger lines are needed.
          * @param {string} noteName - The note name (e.g., 'C', 'C#', 'Db', 'C2').
-         * @returns {object|null} - An object with y, accidental, and ledgerLines array.
+         * @returns {object|null} - An object with y, accidental, and ledgerLines array, or null if not found.
          */
         function getNoteYPositionAndLedgerInfo(noteName) {
             let baseNote = noteName.replace('2', ''); // e.g., 'C', 'C#', 'Db'
             let octave = noteName.includes('2') ? 1 : 0; // 0 for C-B, 1 for C2-B2
 
-            let naturalNoteLetterForPosition;
-            let accidentalForDisplay = '';
+            let naturalNoteLetterForPosition; // The natural note letter (C, D, E, F, G, A, B) for staff position
+            let accidentalForDisplay = ''; // The accidental symbol to display (# or b)
 
             if (baseNote.length === 1) { // Natural notes like C, D, E, F, G, A, B
                 naturalNoteLetterForPosition = baseNote;
@@ -872,12 +659,15 @@
                     naturalNoteLetterForPosition = letter;
                     accidentalForDisplay = '#';
                 } else if (modifier === 'b') {
+                    // For flat notes, the natural note letter for staff position is the letter itself.
+                    // e.g., Bb is on the B line/space, Eb is on the E line/space.
+                    // Special cases: Cb is B, Fb is E.
                     if (letter === 'C' && modifier === 'b') { // Cb
                         naturalNoteLetterForPosition = 'B';
                     } else if (letter === 'F' && modifier === 'b') { // Fb
                         naturalNoteLetterForPosition = 'E';
                     } else {
-                        naturalNoteLetterForPosition = letter;
+                        naturalNoteLetterForPosition = letter; // This is the fix: use the letter itself
                     }
                     accidentalForDisplay = 'b';
                 } else {
@@ -892,25 +682,24 @@
                 return null;
             }
 
-            // 음표 위치 계산 (높은음자리표 기준)
-            const yStep = staffLineHeight / 2; // 선과 간격 사이 거리
-            const F5_Y = staffTopMargin; // 최상단 선(F5) Y 좌표
-            const y = F5_Y + (10 - (naturalNoteIndexInOctave + (octave * 7))) * yStep; // 높은 음은 낮은 Y값
+            // Calculate total natural note index across octaves (C4=0, D4=1, ..., B4=6, C5=7, ...)
+            // F5 (top staff line) is the reference, which is totalNaturalNoteIndex = 10 (F is 3rd natural note, C5-B5 octave is 7 steps higher: 3+7=10)
+            const yStep = staffLineHeight / 2; // Distance between a line and a space
+            const F5_Y = staffTopMargin; // Y position of the top staff line (F5)
+            const y = F5_Y + (10 - (naturalNoteIndexInOctave + (octave * 7))) * yStep; // Higher notes have lower Y values
 
-            // 보조선 필요 여부 확인
+            // Determine ledger lines
             let ledgerLines = [];
             const bottomStaffLineY = staffTopMargin + 4 * staffLineHeight;
             const topStaffLineY = staffTopMargin;
 
             if (y > bottomStaffLineY + yStep) {
-                // 오선지 아래 보조선 추가
                 let currentLedgerY = bottomStaffLineY + yStep * 2;
                 while (y >= currentLedgerY - yStep) {
                     ledgerLines.push(currentLedgerY);
                     currentLedgerY += staffLineHeight;
                 }
             } else if (y < topStaffLineY - yStep) {
-                // 오선지 위 보조선 추가
                 let currentLedgerY = topStaffLineY - yStep * 2;
                 while (y <= currentLedgerY + yStep) {
                     ledgerLines.push(currentLedgerY);
@@ -918,7 +707,7 @@
                 }
             }
 
-            // 음표 기둥 방향 결정
+            // Determine stem direction
             const middleLineY = staffTopMargin + 2 * staffLineHeight;
             const stemDirection = (y < middleLineY) ? 'down' : 'up';
 
@@ -949,11 +738,11 @@
          * @param {string} accidental - The accidental symbol ('#' or 'b').
          */
         function drawAccidental(ctx, x, y, accidental) {
-            ctx.font = '20px Arial';
+            ctx.font = '20px Arial'; // Font for accidental symbol
             ctx.fillStyle = 'black';
-            ctx.textAlign = 'right';
+            ctx.textAlign = 'right'; // Align text to the left of the note head
             ctx.textBaseline = 'middle';
-            ctx.fillText(accidental === '#' ? '#' : '♭', x - noteRadius - 5, y);
+            ctx.fillText(accidental, x - noteRadius - 5, y); // Position to the left of the note
         }
 
         /**
@@ -963,7 +752,7 @@
          * @param {number} xPos - X position of the note for which the ledger line is drawn.
          */
         function drawLedgerLine(ctx, y, xPos) {
-            const ledgerLineLength = noteRadius * 3;
+            const ledgerLineLength = noteRadius * 3; // Length of the ledger line
             ctx.strokeStyle = '#333';
             ctx.lineWidth = 1;
             ctx.beginPath();
@@ -973,13 +762,14 @@
         }
 
         /**
-         * Generates the notes of a major scale with correct enharmonic spellings.
-         * @param {string} rootNote - The root of the scale.
-         * @param {string} currentKey - The selected major key.
-         * @returns {string[]} An array of note names.
+         * Generates the notes of a major scale with correct enharmonic spellings based on the key signature.
+         * @param {string} rootNote - The root of the scale (e.g., 'C', 'F').
+         * @param {string} currentKey - The selected major key (e.g., 'F', 'G').
+         * @returns {string[]} An array of note names (e.g., ['F', 'G', 'A', 'Bb', 'C', 'D', 'E']).
          */
         function getScaleNotesForDisplay(rootNote, currentKey) {
             const scaleNotes = [];
+            // Convert rootNote to its canonical sharp/natural form for initial index lookup
             let canonicalRootNoteForLookup = flatToSharpMap[rootNote] || rootNote;
             let rootIndexInAllNotes = allNotesInOrder.indexOf(canonicalRootNoteForLookup);
 
@@ -997,10 +787,11 @@
             const isFlatKey = keyInfo.flats.length > 0;
 
             majorScaleIntervals.forEach(interval => {
-                let absoluteSemitoneIndex = rootIndexInAllNotes + interval;
-                let semitoneValueInOctave = absoluteSemitoneIndex % 12;
+                let absoluteSemitoneIndex = rootIndexInAllNotes + interval; // Absolute index in the 2-octave range
+
+                let semitoneValueInOctave = absoluteSemitoneIndex % 12; // 0-11 for C-B
                 let octaveSuffix = '';
-                if (absoluteSemitoneIndex >= 12) {
+                if (absoluteSemitoneIndex >= 12) { // If it's in the second octave of the piano
                     octaveSuffix = '2';
                 }
 
@@ -1035,67 +826,277 @@
 
         /**
          * Draws notes on the sheet music canvas.
-         * @param {string[]} notes - An array of note names to draw.
+         * @param {string[][]} noteSets - An array of note arrays. Each inner array is a set of notes for one chord/scale.
          * @param {'chord'|'scale'} type - The type of display ('chord' for stacked, 'scale' for sequential).
+         * @param {boolean} isDualDisplay - True if drawing two chords side-by-side (enharmonic roots).
          */
-        function drawNotesOnStaff(notes, type) {
-            const canvasWidth = sheetMusicCanvas.width / (window.devicePixelRatio || 1);
-            drawStaff(); // 오선지 다시 그리기
+        function drawSheetMusic(noteSets, type, isDualDisplay = false) {
+            drawStaff(); // Clear canvas and draw staff lines and clef
 
-            if (!notes || notes.length === 0) {
+            // Fixed Y for note names (below the staff)
+            const textYBelowStaff = staffTopMargin + 5 * staffLineHeight + 15;
+
+            noteSets.forEach((notes, setIndex) => {
+                // Sort notes to ensure consistent vertical stacking/horizontal ordering
+                notes.sort((a, b) => {
+                    const getSemitoneValueForSort = (note) => {
+                        let base = note.replace('2', '');
+                        let semitoneVal;
+                        if (base.includes('#')) {
+                            semitoneVal = semitoneToSharpDisplayNote.indexOf(base);
+                        } else if (base.includes('b')) {
+                            semitoneVal = semitoneToFlatDisplayNote.indexOf(base);
+                        } else { // Natural note
+                            semitoneVal = semitoneToSharpDisplayNote.indexOf(base);
+                        }
+
+                        if (note.includes('2')) { // Add 12 for the second octave
+                            semitoneVal += 12;
+                        }
+                        return semitoneVal;
+                    };
+                    return getSemitoneValueForSort(a) - getSemitoneValueForSort(b);
+                });
+
+                let notesDisplayStartX; // X position for the first note in a set (for horizontal display)
+                let textLabelsXPositions = []; // X positions for the text labels of this note set
+
+                if (type === 'chord') {
+                    // For chords, notes are stacked vertically, but text labels are horizontally spread
+                    if (isDualDisplay) {
+                        const spacingBetweenChordStacks = 180; // Increased space between the two stacked note heads
+                        const centerOfCanvas = sheetMusicCanvas.width / 2;
+
+                        if (setIndex === 0) { // First chord (sharp/primary)
+                            notesDisplayStartX = centerOfCanvas - (spacingBetweenChordStacks / 2);
+                        } else { // Second chord (flat/enharmonic)
+                            notesDisplayStartX = centerOfCanvas + (spacingBetweenChordStacks / 2);
+                        }
+
+                        // Calculate text labels X positions centered around their respective chord stack X
+                        textLabelsXPositions = calculateTextPositionsCenteredAround(
+                            notesDisplayStartX, // Center text labels around the stacked chord notes
+                            notes.length,
+                            chordDisplaySpacing
+                        );
+
+                    } else { // Single chord display
+                        notesDisplayStartX = sheetMusicCanvas.width / 2; // Chord notes are stacked vertically in the center
+                        textLabelsXPositions = calculateTextPositionsCenteredAround(
+                            notesDisplayStartX,
+                            notes.length,
+                            chordDisplaySpacing
+                        );
+                    }
+                } else if (type === 'scale') {
+                    // For scales, both notes and text labels are horizontally spread
+                    notesDisplayStartX = scaleNoteStartX;
+                    // For scales, text labels are directly below their respective notes, so calculate positions based on note index
+                    textLabelsXPositions = notes.map((_, i) => scaleNoteStartX + (i * scaleNoteSpacing));
+                }
+
+
+                notes.forEach((note, noteIndex) => {
+                    const noteInfo = getNoteYPositionAndLedgerInfo(note);
+                    if (noteInfo) {
+                        const { y, accidental, ledgerLines, stemDirection } = noteInfo;
+                        let currentNoteX;
+
+                        if (type === 'chord') {
+                            currentNoteX = notesDisplayStartX; // All notes in a chord are at the same X for stacking
+                            // No stems for chords
+                        } else if (type === 'scale') {
+                            currentNoteX = scaleNoteStartX + (noteIndex * scaleNoteSpacing);
+                            // Existing stem drawing logic for scales
+                            const stemLength = staffLineHeight * 3.5; // Standard stem length
+                            let stemStartX, stemStartY, stemEndX, stemEndY;
+
+                            if (stemDirection === 'up') {
+                                stemStartX = currentNoteX + noteRadius;
+                                stemStartY = y;
+                                stemEndX = currentNoteX + noteRadius;
+                                stemEndY = y - stemLength;
+                            } else { // 'down'
+                                stemStartX = currentNoteX - noteRadius;
+                                stemStartY = y;
+                                stemEndX = currentNoteX - noteRadius;
+                                stemEndY = y + stemLength;
+                            }
+
+                            sheetMusicCtx.beginPath();
+                            sheetMusicCtx.moveTo(stemStartX, stemStartY);
+                            sheetMusicCtx.lineTo(stemEndX, stemEndY);
+                            sheetMusicCtx.stroke();
+                        }
+
+                        drawNoteHead(sheetMusicCtx, currentNoteX, y);
+
+                        if (accidental) {
+                            drawAccidental(sheetMusicCtx, currentNoteX, y, accidental);
+                        }
+
+                        ledgerLines.forEach(lineY => {
+                            drawLedgerLine(sheetMusicCtx, lineY, currentNoteX);
+                        });
+
+                        // Draw note name
+                        sheetMusicCtx.font = '12px Arial'; // Font size for note name
+                        sheetMusicCtx.fillStyle = 'black';
+                        sheetMusicCtx.textAlign = 'center'; // Center text
+
+                        let noteTextX;
+                        let noteTextY = textYBelowStaff; // Always use fixed Y for text below staff
+                        sheetMusicCtx.textBaseline = 'top'; // Align text to the top of its bounding box (draws downwards)
+
+
+                        if (type === 'chord') {
+                            // For chords, text labels are horizontally spread below the staff
+                            noteTextX = textLabelsXPositions[noteIndex];
+                        } else { // 'scale'
+                            // For scales, text labels are below the staff and horizontally aligned
+                            noteTextX = textLabelsXPositions[noteIndex]; // Use pre-calculated positions for scales too
+                        }
+                        sheetMusicCtx.fillText(note.replace('2', ''), noteTextX, noteTextY); // Display note name without octave number
+                    }
+                });
+            });
+        }
+
+
+        /**
+         * Generates chord notes with appropriate enharmonic spelling based on root and chord type.
+         * @param {number} rootIndex - The semitone index of the root note (0-11).
+         * @param {string} chordType - The type of chord (e.g., 'minor', 'major').
+         * @param {string|null} primaryAccidentalPreference - 'sharp', 'flat', or null for natural roots.
+         * @returns {string[]} An array of note names with correct enharmonic spelling.
+         */
+        function generateChordNotesForDisplay(rootIndex, chordType, primaryAccidentalPreference) {
+            const notesForDisplay = [];
+            const intervals = chords[chordType];
+
+            intervals.forEach(interval => {
+                let targetSemitone = (rootIndex + interval) % 12;
+                let octaveSuffix = '';
+                if (rootIndex + interval >= 12) { // Check if it crosses into the next octave
+                    octaveSuffix = '2';
+                }
+
+                let noteNameForDisplay = '';
+
+                if (primaryAccidentalPreference === 'sharp') {
+                    noteNameForDisplay = semitoneToSharpDisplayNote[targetSemitone];
+                } else if (primaryAccidentalPreference === 'flat') {
+                    noteNameForDisplay = semitoneToFlatDisplayNote[targetSemitone];
+                } else { // Natural root, apply standard minor/diminished spelling rules
+                    if (chordType === 'minor' || chordType === 'm7' || chordType === 'm7b5' || chordType === 'dim7') {
+                        // For minor 3rd, minor 7th, diminished 5th, prefer flat spelling if it's a black key
+                        if (interval === 3 || interval === 10 || (interval === 6 && (chordType === 'm7b5' || chordType === 'dim7'))) {
+                            if (semitoneToFlatDisplayNote[targetSemitone].includes('b')) {
+                                noteNameForDisplay = semitoneToFlatDisplayNote[targetSemitone];
+                            } else {
+                                noteNameForDisplay = semitoneToSharpDisplayNote[targetSemitone];
+                            }
+                        } else { // Root and perfect 5th remain natural/sharp
+                            noteNameForDisplay = semitoneToSharpDisplayNote[targetSemitone];
+                        }
+                    } else { // Major, Dominant 7th, Major 7th chords on natural root
+                        noteNameForDisplay = semitoneToSharpDisplayNote[targetSemitone];
+                    }
+                }
+                notesForDisplay.push(noteNameForDisplay + octaveSuffix);
+            });
+            return notesForDisplay;
+        }
+
+
+        /**
+         * Highlights the selected chord on the piano and draws it on the sheet music.
+         */
+        function highlightChord() {
+            // Remove existing highlights from piano keys
+            pianoKeys.forEach(key => key.classList.remove('highlight'));
+
+            const rootNote = rootNoteSelect.value; // e.g., 'C', 'C#', 'Db'
+            const chordType = chordTypeSelect.value;
+
+            if (!rootNote || !chordType) {
+                console.warn("근음과 화성 종류를 모두 선택해주세요.");
+                drawStaff(); // Clear sheet music if no selection
                 return;
             }
 
-            // 그릴 위치 계산
-            let notePositions = [];
-            if (type === 'scale') {
-                // 스케일: 순차적으로 표시
-                const scaleSpacing = (canvasWidth - 120) / Math.max(6, notes.length - 1);
-                notePositions = notes.map((_, i) => 80 + i * scaleSpacing);
-            } else {
-                // 코드: 중앙에 모아서 표시
-                const chordCenter = canvasWidth / 2;
-                const chordSpacing = chordDisplaySpacing;
-                notePositions = calculateTextPositionsCenteredAround(chordCenter, notes.length, chordSpacing);
+            // Convert rootNote to its canonical sharp/natural form for internal interval calculation
+            let canonicalRootNoteForIntervalCalc = flatToSharpMap[rootNote] || rootNote;
+            const rootIndex = allNotesInOrder.indexOf(canonicalRootNoteForIntervalCalc);
+
+            if (rootIndex === -1) {
+                console.warn(`알 수 없는 근음입니다: ${rootNote}`);
+                drawStaff(); // Clear sheet music if invalid root
+                return;
             }
 
-            // 음표 그리기
-            notes.forEach((note, i) => {
-                const noteInfo = getNoteYPositionAndLedgerInfo(note);
-                if (noteInfo) {
-                    // 보조선 먼저 그리기
-                    noteInfo.ledgerLines.forEach(ledgerY => {
-                        drawLedgerLine(sheetMusicCtx, ledgerY, notePositions[i]);
-                    });
+            const intervals = chords[chordType];
+            if (!intervals) {
+                console.warn(`지원하지 않는 코드 타입입니다: ${chordType}.`);
+                drawStaff(); // Clear sheet music if invalid chord type
+                return;
+            }
 
-                    // 임시표(#, b) 그리기
-                    if (noteInfo.accidental) {
-                        drawAccidental(sheetMusicCtx, notePositions[i], noteInfo.y, noteInfo.accidental);
-                    }
-
-                    // 음표 머리 그리기
-                    drawNoteHead(sheetMusicCtx, notePositions[i], noteInfo.y);
+            // 1. Determine notes for PIANO HIGHLIGHTING (always sharp/natural for data-note lookup)
+            const notesForPianoHighlight = [];
+            intervals.forEach(interval => {
+                let targetIndex = rootIndex + interval;
+                while (targetIndex >= allNotesInOrder.length) {
+                    targetIndex -= 12; // Adjust for octave
                 }
+                notesForPianoHighlight.push(allNotesInOrder[targetIndex]);
             });
-        }
 
-        /**
-         * Removes highlighting from all piano keys.
-         */
-        function clearAllHighlights() {
-            document.querySelectorAll('.key.highlight').forEach(key => {
-                key.classList.remove('highlight');
-            });
-        }
+            // Determine the primary accidental preference for the *selected root note's chord display*
+            let primaryAccidentalPreference = null; // 'sharp' or 'flat'
+            if (rootNote.includes('#')) {
+                primaryAccidentalPreference = 'sharp';
+            } else if (rootNote.includes('b')) {
+                primaryAccidentalPreference = 'flat';
+            }
+            const notesForSheetMusicDisplayPrimary = generateChordNotesForDisplay(rootIndex, chordType, primaryAccidentalPreference);
 
-        /**
-         * Highlights the specified notes on the piano keyboard.
-         * @param {string[]} notes - Array of note names to highlight.
-         */
-        function highlightNotes(notes) {
-            clearAllHighlights();
-            notes.forEach(note => {
-                const keyElement = document.querySelector(`.key[data-note="${note}"]`);
+
+            // --- Dual Display Logic for Black Key Roots ---
+            let enharmonicRootNameForDisplay = null;
+            const rootSemitone = allNotesInOrder.indexOf(rootNote.replace('2', '')) % 12;
+
+            // Check if the selected root is a black key that has both sharp and flat names
+            if (semitoneToSharpDisplayNote[rootSemitone].includes('#') && semitoneToFlatDisplayNote[rootSemitone].includes('b')) {
+                if (rootNote.includes('#')) {
+                    enharmonicRootNameForDisplay = semitoneToFlatDisplayNote[rootSemitone]; // C# -> Db
+                } else if (rootNote.includes('b')) {
+                    enharmonicRootNameForDisplay = semitoneToSharpDisplayNote[rootSemitone]; // Db -> C#
+                }
+            }
+
+            if (enharmonicRootNameForDisplay) {
+                // Calculate the enharmonic root's index for interval calculation
+                let canonicalEnharmonicRootForIntervalCalc = flatToSharpMap[enharmonicRootNameForDisplay] || enharmonicRootNameForDisplay;
+                const enharmonicRootIndex = allNotesInOrder.indexOf(canonicalEnharmonicRootForIntervalCalc);
+
+                // Determine the accidental preference for the enharmonic version
+                let enharmonicAccidentalPreference = null;
+                if (enharmonicRootNameForDisplay.includes('#')) {
+                    enharmonicAccidentalPreference = 'sharp';
+                } else if (enharmonicRootNameForDisplay.includes('b')) {
+                    enharmonicAccidentalPreference = 'flat';
+                }
+
+                const notesForSheetMusicDisplayEnharmonic = generateChordNotesForDisplay(enharmonicRootIndex, chordType, enharmonicAccidentalPreference);
+                drawSheetMusic([notesForSheetMusicDisplayPrimary, notesForSheetMusicDisplayEnharmonic], 'chord', true);
+            } else {
+                drawSheetMusic([notesForSheetMusicDisplayPrimary], 'chord', false);
+            }
+
+            // Highlight on piano keys
+            notesForPianoHighlight.forEach(noteToFind => {
+                const keyElement = document.querySelector(`.key[data-note="${noteToFind}"]`);
                 if (keyElement) {
                     keyElement.classList.add('highlight');
                 }
@@ -1103,94 +1104,73 @@
         }
 
         /**
-         * Gets the notes in a chord based on the root note and chord type.
-         * @param {string} rootNote - The root note of the chord.
-         * @param {string} chordType - The type of chord.
-         * @returns {string[]} An array of note names in the chord.
+         * Highlights the selected scale on the piano and draws it on the sheet music.
          */
-        function getChordNotes(rootNote, chordType) {
-            const chordIntervals = chords[chordType];
-            if (!chordIntervals) {
-                console.warn(`Invalid chord type: ${chordType}`);
-                return [];
+        function highlightScale() {
+            // Remove existing highlights from piano keys
+            pianoKeys.forEach(key => key.classList.remove('highlight'));
+
+            const selectedKey = scaleSelect.value;
+
+            if (!selectedKey) {
+                console.warn("음계의 근음을 선택해주세요.");
+                drawStaff(); // Clear sheet music if no selection
+                return;
             }
 
-            let canonicalRootNote = flatToSharpMap[rootNote] || rootNote;
-            let rootIndex = allNotesInOrder.indexOf(canonicalRootNote);
-            if (rootIndex === -1) {
-                console.warn(`Invalid root note: ${rootNote}`);
-                return [];
-            }
+            // Generate scale notes with correct enharmonic spelling for display
+            const notesForSheetMusic = getScaleNotesForDisplay(selectedKey, selectedKey);
 
-            // 코드 구성음 계산
-            return chordIntervals.map(interval => {
-                const noteIndex = (rootIndex + interval) % allNotesInOrder.length;
-                return allNotesInOrder[noteIndex];
+            // For piano key highlighting, convert back to the sharp/natural format used by data-note attributes
+            const notesForPianoHighlight = notesForSheetMusic.map(note => {
+                let baseNote = note.replace('2', '');
+                let octaveSuffix = note.includes('2') ? '2' : '';
+                // Use flatToSharpMap to convert flat notes to their sharp equivalents for piano key lookup
+                if (flatToSharpMap[baseNote]) {
+                    return flatToSharpMap[baseNote] + octaveSuffix;
+                }
+                return note; // If it's already sharp/natural or C, F, G, etc.
             });
+
+            // Highlight on piano keys
+            notesForPianoHighlight.forEach(noteToFind => {
+                const keyElement = document.querySelector(`.key[data-note="${noteToFind}"]`);
+                if (keyElement) {
+                    keyElement.classList.add('highlight');
+                }
+            });
+
+            // Draw on sheet music canvas as a scale
+            drawSheetMusic([notesForSheetMusic], 'scale', false); // Pass the correctly spelled notes
         }
 
-        // 페이지 로드 시 초기화 함수
-        window.addEventListener('DOMContentLoaded', () => {
-            // 드롭다운 메뉴 초기화
-            populateDropdowns();
-            
-            // 캔버스 초기화
-            resizeCanvas();
-            
-            // 코드 버튼 클릭 이벤트
-            highlightChordButton.addEventListener('click', () => {
-                const rootNote = rootNoteSelect.value;
-                const chordType = chordTypeSelect.value;
-                const chordNotes = getChordNotes(rootNote, chordType);
-                
-                // 피아노 건반에 하이라이트
-                highlightNotes(chordNotes);
-                
-                // 악보에 코드 그리기
-                drawNotesOnStaff(chordNotes, 'chord');
-            });
-            
-            // 리셋 버튼 클릭 이벤트
-            resetButton.addEventListener('click', () => {
-                clearAllHighlights();
-                drawStaff(); // 악보 초기화
-            });
-            
-            // 스케일 버튼 클릭 이벤트
-            highlightScaleButton.addEventListener('click', () => {
-                const scaleKey = scaleSelect.value;
-                const scaleNotes = getScaleNotesForDisplay(scaleKey, scaleKey);
-                
-                // 피아노 건반에 하이라이트
-                highlightNotes(scaleNotes);
-                
-                // 악보에 스케일 그리기
-                drawNotesOnStaff(scaleNotes, 'scale');
-            });
-            
-            // 스케일 리셋 버튼 클릭 이벤트
-            resetScaleButton.addEventListener('click', () => {
-                clearAllHighlights();
-                drawStaff(); // 악보 초기화
-            });
 
-            // 모바일 최적화를 위한 추가 처리
-            // iOS에서의 더블탭 줌 방지
-            document.addEventListener('touchstart', function(event) {
-                if (event.touches.length > 1) {
-                    event.preventDefault();
-                }
-            }, { passive: false });
-            
-            let lastTouchEnd = 0;
-            document.addEventListener('touchend', function(event) {
-                const now = (new Date()).getTime();
-                if (now - lastTouchEnd <= 300) {
-                    event.preventDefault();
-                }
-                lastTouchEnd = now;
-            }, { passive: false });
-        });
+        /**
+         * Clears all highlights and selected dots from piano keys and the sheet music canvas.
+         */
+        function resetHighlights() {
+            pianoKeys.forEach(key => {
+                key.classList.remove('highlight');
+                key.classList.remove('selected-dot');
+                key.classList.remove('active'); // Ensure active state is also cleared
+            });
+            // Also reset the pressedKeys set for keyboard inputs
+            pressedKeys.clear();
+            drawStaff(); // Clear the sheet music canvas
+        }
+
+
+        // On page load, populate dropdowns and draw an empty staff
+        window.onload = function() {
+            populateDropdowns();
+            drawStaff(); // Draw initial empty staff
+        };
+
+        // Button click events
+        highlightChordButton.addEventListener('click', highlightChord);
+        resetButton.addEventListener('click', resetHighlights);
+        highlightScaleButton.addEventListener('click', highlightScale);
+        resetScaleButton.addEventListener('click', resetHighlights);
     </script>
 </body>
 </html>
